@@ -1,0 +1,40 @@
+# Binaries and other executable files
+*.exe
+*.dll
+*.so
+*.dylib
+*.bin
+*.o
+*.obj
+
+# Build directories
+/bin/
+/obj/
+/dist/
+/build/
+/tmp/
+
+# Dependency directories (Go modules)
+/vendor/
+
+# IDE specific files
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# Log files and databases
+*.log
+*.sql
+*.sqlite
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Go specific
+*.test
+*.out
+
+# Project specific
+# Add any other directories or files specific to your project that should not be tracked
