@@ -88,14 +88,14 @@ To build an executable:
 
 1. From the project root directory, run:
    ```
-   go build ./src
+   go build -o recursive-file-collate .\src\
    ```
 
-2. This will create an executable named `src` (or `src.exe` on Windows) in the project root.
+2. This will create an executable named `recursive-file-collate` (or `recursive-file-collate.exe` on Windows) in the project root.
 
 3. You can run the executable with:
    ```
-   ./src <path_to_directory>
+   ./recursive-file-collate <path_to_directory>
    ```
 
 ## Contributing
