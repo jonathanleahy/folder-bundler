@@ -8,11 +8,14 @@ RecursiveFileCollator is a Go program that recursively processes a directory str
 - Ignores files and directories specified in .gitignore
 - Excludes common build directories and binary files
 - Respects file size limits to avoid processing large files
+- Automatically backs up previous output files
 - Generates a single Markdown file with:
     - File paths
     - File sizes
     - Last modified dates
     - File contents (with syntax highlighting for supported file types)
+- Identifies and skips non-text files
+- Handles various input scenarios for the root directory
 
 ## Project Structure
 
@@ -48,11 +51,13 @@ RecursiveFileCollator/
 
 1. From the project root directory, run the program with the following command:
    ```
-   go run ./src <path_to_directory>
+   go run ./src [path_to_directory]
    ```
-   Replace `<path_to_directory>` with the path to the directory you want to process.
+   Replace `[path_to_directory]` with the path to the directory you want to process. If no path is provided, the current directory will be used.
 
 2. The program will generate a file named `<directory_name>_collated.md` in the current working directory.
+
+3. If a file with the same name already exists, it will be renamed to `<directory_name>_collated.md.bak` before the new file is created.
 
 ## Example
 
@@ -61,7 +66,7 @@ If you run:
 go run ./src /path/to/my/project
 ```
 
-The program will create a file named `project_collated.md` containing the processed contents of the `/path/to/my/project` directory.
+The program will create a file named `project_collated.md` containing the processed contents of the `/path/to/my/project` directory. If `project_collated.md` already exists, it will be renamed to `project_collated.md.bak`.
 
 ## Configuration
 
@@ -95,8 +100,14 @@ To build an executable:
 
 3. You can run the executable with:
    ```
-   ./recursive-file-collate <path_to_directory>
+   ./recursive-file-collate [path_to_directory]
    ```
+
+## New Features
+
+- **Automatic Backup**: The program now automatically renames an existing output file to `.bak` before creating a new one.
+- **Flexible Input**: You can now run the program without specifying a directory, and it will use the current directory.
+- **Non-text File Handling**: The program now identifies and skips non-text files, preventing errors when processing binary files.
 
 ## Contributing
 
