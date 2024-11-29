@@ -1,124 +1,165 @@
-# FolderBundler
+# Unified File Structure Manager
 
-FolderBundler is a Go program that recursively processes a directory structure and creates Markdown files containing the contents of all files, along with their metadata. This tool is particularly useful for creating a comprehensive overview of a project's file structure and contents, which can be easily shared or analyzed.
+A robust Go application for collecting and reconstructing file structures. This tool enables you to create detailed documentation of your project's file structure and reconstruct it elsewhere, making it valuable for project archiving, documentation, and deployment.
 
 ## Features
 
-FolderBundler offers comprehensive file processing capabilities with intelligent size management:
+The File Structure Manager provides two primary operations:
 
-- Recursively traverses directory structures
-- Automatically splits output into multiple files when exceeding 2MB
-- Ignores hidden files and directories (starting with '.')
-- Respects patterns specified in .gitignore
-- Excludes common build directories and binary files
-- Enforces a 1MB limit on individual processed files
-- Automatically backs up previous output files
-- Generates Markdown files containing:
-    - File paths
-    - File sizes
-    - Last modified dates
-    - File contents (with syntax highlighting for supported file types)
-- Identifies and skips non-text files
-- Handles various input scenarios for the root directory
+Collection creates a detailed Markdown summary of your project structure, including:
+- File contents with syntax highlighting for supported languages
+- Directory structure preservation
+- File metadata (size, modification times)
+- Intelligent handling of binary and text files
+- Support for large projects through automatic file splitting
+- Configurable file exclusions
 
-## Project Structure
-
-```
-FolderBundler/
-│
-├── src/
-│   ├── main.go
-│   └── main_test.go
-│
-├── README.md
-├── .gitignore
-├── go.mod
-└── go.sum
-```
+Reconstruction capabilities include:
+- Accurate recreation of directory structures
+- Preservation of file contents and metadata
+- Support for multi-part file reconstruction
+- Optional timestamp preservation
+- Detailed progress reporting
 
 ## Installation
 
-1. Ensure you have Go installed on your system. If not, you can download it from golang.org.
-2. Clone this repository:
+To use this tool, ensure you have Go installed on your system (version 1.16 or later recommended). Then follow these steps:
+
+1. Clone the repository:
 ```bash
-git clone https://github.com/yourusername/FolderBundler.git
-cd FolderBundler
+git clone [repository-url]
+cd file-structure-manager
 ```
 
-3. Install the required dependency:
+2. Install the required dependency:
 ```bash
 go get github.com/sabhiram/go-gitignore
 ```
 
+3. Build the application:
+```bash
+go build -o fsmanager
+```
+
 ## Usage
 
-1. From the project root directory, run the program with the following command:
+The application supports two main commands: `collect` and `reconstruct`.
+
+### Collecting File Structure
+
+Basic usage:
 ```bash
-go run ./src [path_to_directory]
+./fsmanager collect [directory_path]
 ```
 
-Replace `[path_to_directory]` with the path to the directory you want to process. If no path is provided, the current directory will be used.
-
-2. The program will generate files named `<directory_name>_collated_part1.md`, `<directory_name>_collated_part2.md`, etc., in the current working directory. New parts are created automatically when a file reaches 2MB in size.
-
-3. If files with the same names already exist, they will be renamed with a `.bak` extension before the new files are created.
-
-## Example
-
-If you run:
+With custom parameters:
 ```bash
-go run ./src /path/to/my/project
+./fsmanager collect -max-file 5242880 -max-output 10485760 -exclude-dirs "logs,temp" ./myproject
 ```
 
-The program will create files named `project_collated_part1.md`, `project_collated_part2.md`, etc., containing the processed contents of the `/path/to/my/project` directory. If these files already exist, they will be backed up with a `.bak` extension.
+Available collection parameters:
+- `-max-file`: Maximum size of individual files to process (bytes, default: 1MB)
+- `-max-output`: Maximum size of output files (bytes, default: 2MB)
+- `-exclude-dirs`: Comma-separated list of directories to exclude
+- `-exclude-files`: Comma-separated list of files to exclude
+- `-exclude-exts`: Comma-separated list of file extensions to exclude
+- `-include-hidden`: Include hidden files and directories (default: false)
+- `-skip-gitignore`: Skip .gitignore processing (default: false)
 
-## Configuration
+### Reconstructing File Structure
 
-You can modify the following variables in the `src/main.go` file to customize the behavior:
-- `maxFileSize`: Maximum size of individual files to process (default is 1MB)
-- `maxOutputSize`: Maximum size of output files before splitting (default is 2MB)
-- `excludedDirs`: Map of directory names to exclude
-- `excludedExtensions`: Map of file extensions to exclude
-- `excludedFiles`: Map of specific filenames to exclude
-
-## Running Tests
-
-To run the tests for this program:
-1. Ensure you're in the project root directory.
-2. Run the following command:
+Basic usage:
 ```bash
-go test ./src -v
+./fsmanager reconstruct <input_file>
 ```
 
-## Building the Program
-
-To build an executable:
-1. From the project root directory, run:
+With custom parameters:
 ```bash
-go build -o folder-bundler ./src/
+./fsmanager reconstruct -preserve-time=false project_collated.md
 ```
 
-2. This will create an executable named `folder-bundler` (or `folder-bundler.exe` on Windows) in the project root.
+Available reconstruction parameters:
+- `-preserve-time`: Preserve original timestamps (default: true)
 
-3. You can run the executable with:
-```bash
-./folder-bundler [path_to_directory]
-```
+## Default Exclusions
 
-## Key Features and Improvements
+The tool automatically excludes certain files and directories by default:
 
-- **Intelligent File Splitting**: Automatically creates new files when reaching the 2MB size limit
-- **Hidden File Handling**: Automatically skips all hidden files and directories (starting with '.')
-- **Consistent Formatting**: Maintains proper Markdown formatting across all output files
-- **Progress Tracking**: Provides clear console output showing processing status
-- **Automatic Backup**: Preserves existing files by creating backups before overwriting
-- **Flexible Input**: Supports running without a specified directory
-- **Non-text File Handling**: Identifies and skips binary and non-text files
+Directories:
+- node_modules
+- vendor
+- venv
+- dist
+- build
+
+File Extensions:
+- .exe, .dll, .so, .dylib (Binary executables)
+- .bin, .pkl, .pyc (Binary data files)
+- .bak (Backup files)
+
+Files:
+- package-lock.json
+- yarn.lock
+
+## Supported Programming Languages
+
+The tool provides syntax highlighting for numerous programming languages in the generated documentation, including:
+- Go, Python, JavaScript, TypeScript
+- Java, Kotlin, Scala
+- C++, C, Rust
+- PHP, Ruby, Perl
+- HTML, CSS, XML, JSON, YAML
+- SQL, R, Swift
+- And many more
+
+## Technical Details
+
+The tool implements several important features for reliable file handling:
+
+1. Text File Detection
+  - UTF-8 validation
+  - Null byte detection
+  - Empty file handling
+
+2. Size Management
+  - Automatic file splitting for large projects
+  - Configurable size limits
+  - Skip handling for oversized files
+
+3. Error Handling
+  - Comprehensive error reporting
+  - Backup creation for existing files
+  - Directory permission management
+
+## Common Use Cases
+
+The File Structure Manager is particularly useful for:
+- Project documentation and archiving
+- Deployment preparation and verification
+- Project structure analysis
+- Code review preparation
+- Project templating
+
+## Best Practices
+
+1. When collecting files:
+  - Start with default exclusions and adjust as needed
+  - Use appropriate size limits for your project
+  - Consider enabling hidden file inclusion for complete documentation
+
+2. When reconstructing:
+  - Ensure sufficient disk space at the target location
+  - Verify all parts are available for multi-part collections
+  - Consider timestamp preservation requirements
 
 ## Contributing
 
-Contributions to improve FolderBundler are welcome! Please feel free to submit a Pull Request.
+We welcome contributions to improve the File Structure Manager. Please ensure you:
+1. Follow Go coding standards
+2. Add tests for new features
+3. Update documentation as needed
+4. Submit detailed pull requests
 
 ## License
 
-This project is open source and available under the MIT License.
+[Add your license information here]
