@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"folder-bundler/internal/config"
@@ -17,6 +18,16 @@ type FileCollator struct {
 	currentFile  *os.File
 	baseFileName string
 	params       *config.Parameters
+}
+
+func hasHiddenComponent(path string) bool {
+	parts := strings.Split(path, string(os.PathSeparator))
+	for _, part := range parts {
+		if strings.HasPrefix(part, ".") {
+			return true
+		}
+	}
+	return false
 }
 
 func ProcessDirectory(params *config.Parameters) error {
@@ -37,12 +48,21 @@ func ProcessDirectory(params *config.Parameters) error {
 		}
 
 		relPath, err := filepath.Rel(params.RootDir, path)
-		if err != nil {
-			return err
+		if err != nil || relPath == "." {
+			return nil
 		}
 
-		if relPath == "." {
+		// Skip entire hidden paths unless explicitly included
+		if !params.IncludeHidden && hasHiddenComponent(relPath) {
+			if info.IsDir() {
+				return filepath.SkipDir
+			}
 			return nil
+		}
+
+		// Skip excluded directories
+		if info.IsDir() && params.ExcludedDirs[info.Name()] {
+			return filepath.SkipDir
 		}
 
 		return collator.processPath(relPath, info)
@@ -114,5 +134,6 @@ func (fc *FileCollator) createNewFile() error {
 func (fc *FileCollator) closeCurrentFile() {
 	if fc.currentFile != nil {
 		fc.currentFile.Close()
+		fc.currentFile = nil
 	}
 }

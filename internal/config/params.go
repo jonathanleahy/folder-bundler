@@ -28,7 +28,7 @@ Commands:
 Flags:
   -max-file        Maximum file size (default: 2MB)
   -exclude-dirs    Skip directories (default: node_modules,.git,.idea,...)
-  -include-hidden  Include hidden files
+  -include-hidden  Include hidden files/directories (default: false)
 `)
 }
 
@@ -44,8 +44,13 @@ func ParseParameters() (*Parameters, error) {
 	var params Parameters
 	var excludeDirs, excludeFiles, excludeExts string
 
-	defaultExcludeDirs := "node_modules,.git,.idea,.vscode,dist,build,coverage,tmp"
-	defaultExcludeFiles := "package-lock.json,yarn.lock,.DS_Store"
+	defaultExcludeDirs := strings.Join([]string{
+		"node_modules", "dist", "build", "coverage", "tmp",
+		".git", ".next", ".idea", ".vscode", ".cache", ".build",
+		".vercel", ".turbo", ".yarn", ".npm",
+	}, ",")
+
+	defaultExcludeFiles := "package-lock.json,yarn.lock,.DS_Store,.env"
 	defaultExcludeExts := ".exe,.dll,.so,.dylib,.bin,.pkl,.pyc,.bak"
 
 	flag.Int64Var(&params.MaxFileSize, "max-file", 2*1024*1024, "Maximum size of individual files")
