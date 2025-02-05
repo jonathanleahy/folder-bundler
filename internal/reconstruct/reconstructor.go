@@ -62,15 +62,22 @@ func parseInputFile(filename string) (string, []FileInfo, error) {
 	}
 	defer file.Close()
 
+	// Read entire file content for debugging
+	content, err := os.ReadFile(filename)
+	if err != nil {
+		return "", nil, err
+	}
+	fmt.Printf("Full file content:\n%s\n", string(content))
+
 	var files []FileInfo
 	var currentFile *FileInfo
 	var rootDir string
 	isReadingCode := false
-	inMetadata := false
 
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
 		line := scanner.Text()
+		fmt.Printf("Processing line: %s (isReadingCode=%v)\n", line, isReadingCode)
 
 		switch {
 		case strings.HasPrefix(line, "Root Directory: "):
@@ -89,7 +96,6 @@ func parseInputFile(filename string) (string, []FileInfo, error) {
 				path:        dirPath,
 				isDirectory: true,
 			})
-			inMetadata = true
 
 		case strings.HasPrefix(line, "## File: "):
 			if currentFile != nil && !isReadingCode {
@@ -103,7 +109,6 @@ func parseInputFile(filename string) (string, []FileInfo, error) {
 				path:        path,
 				isDirectory: false,
 			}
-			inMetadata = true
 
 		case strings.HasPrefix(line, "Size: "):
 			if currentFile != nil {
@@ -119,13 +124,15 @@ func parseInputFile(filename string) (string, []FileInfo, error) {
 			}
 
 		case strings.HasPrefix(line, "```"):
-			isReadingCode = !isReadingCode
-			inMetadata = false
-			continue
+			if strings.TrimPrefix(strings.TrimSpace(line), "```") == "" {
+				isReadingCode = !isReadingCode
+			} else if !isReadingCode {
+				isReadingCode = true
+			}
 
 		default:
-			if isReadingCode && currentFile != nil && !inMetadata {
-				currentFile.content.WriteString(line + "\n")
+			if isReadingCode && currentFile != nil && !strings.HasPrefix(line, "```") {
+				currentFile.content.WriteString(strings.TrimRight(line, "\r\n") + "\n")
 			}
 		}
 	}
@@ -146,6 +153,8 @@ func parseInputFile(filename string) (string, []FileInfo, error) {
 }
 
 func reconstructFiles(rootDir string, files []FileInfo, params *config.Parameters) error {
+	fmt.Printf("Reconstructing files in root dir: %s\n", rootDir)
+	fmt.Printf("Total files to process: %d\n", len(files))
 	if err := os.MkdirAll(rootDir, 0755); err != nil {
 		return fmt.Errorf("error creating root directory: %v", err)
 	}
@@ -200,6 +209,6 @@ func reconstructFile(f FileInfo, preserveTimestamp bool) error {
 		}
 	}
 
-	fmt.Printf("Created file: %s\n", f.path)
+	fmt.Printf("Created file: %s with content length: %d\nContent:\n%s\n", f.path, len(f.content.String()), f.content.String())
 	return nil
 }
