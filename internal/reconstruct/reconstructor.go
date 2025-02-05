@@ -66,6 +66,7 @@ func parseInputFile(filename string) (string, []FileInfo, error) {
 	var currentFile *FileInfo
 	var rootDir string
 	isReadingCode := false
+	inMetadata := false
 
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
@@ -76,6 +77,10 @@ func parseInputFile(filename string) (string, []FileInfo, error) {
 			rootDir = strings.TrimPrefix(line, "Root Directory: ")
 
 		case strings.HasPrefix(line, "## Directory: "):
+			if currentFile != nil && !isReadingCode {
+				files = append(files, *currentFile)
+				currentFile = nil
+			}
 			dirPath := strings.TrimPrefix(line, "## Directory: ")
 			if dirPath == "." {
 				dirPath = ""
@@ -84,9 +89,10 @@ func parseInputFile(filename string) (string, []FileInfo, error) {
 				path:        dirPath,
 				isDirectory: true,
 			})
+			inMetadata = true
 
 		case strings.HasPrefix(line, "## File: "):
-			if currentFile != nil {
+			if currentFile != nil && !isReadingCode {
 				files = append(files, *currentFile)
 			}
 			path := strings.TrimPrefix(line, "## File: ")
@@ -97,27 +103,34 @@ func parseInputFile(filename string) (string, []FileInfo, error) {
 				path:        path,
 				isDirectory: false,
 			}
+			inMetadata = true
 
 		case strings.HasPrefix(line, "Size: "):
-			size := strings.TrimPrefix(line, "Size: ")
-			size = strings.TrimSuffix(size, " bytes")
-			fmt.Sscanf(size, "%d", &currentFile.size)
+			if currentFile != nil {
+				size := strings.TrimPrefix(line, "Size: ")
+				size = strings.TrimSuffix(size, " bytes")
+				fmt.Sscanf(size, "%d", &currentFile.size)
+			}
 
 		case strings.HasPrefix(line, "Last Modified: "):
-			timeStr := strings.TrimPrefix(line, "Last Modified: ")
-			currentFile.lastModified, _ = time.Parse(time.RFC3339, timeStr)
+			if currentFile != nil {
+				timeStr := strings.TrimPrefix(line, "Last Modified: ")
+				currentFile.lastModified, _ = time.Parse(time.RFC3339, timeStr)
+			}
 
-		case line == "```":
+		case strings.HasPrefix(line, "```"):
 			isReadingCode = !isReadingCode
+			inMetadata = false
+			continue
 
 		default:
-			if isReadingCode && currentFile != nil {
+			if isReadingCode && currentFile != nil && !inMetadata {
 				currentFile.content.WriteString(line + "\n")
 			}
 		}
 	}
 
-	if currentFile != nil {
+	if currentFile != nil && !isReadingCode {
 		files = append(files, *currentFile)
 	}
 
