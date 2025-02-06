@@ -18,8 +18,12 @@ type Parameters struct {
 	RootDir           string
 }
 
+const version = "1.0.0"
+ggi
+
 func PrintUsage() {
-	fmt.Printf(`Usage: bundler <command> [flags] [path]
+	fmt.Printf(`Folder-Bundler - Version %s
+Usage: bundler <command> [flags] [path]
 
 Commands:
   collect     Create directory structure summary
@@ -29,7 +33,7 @@ Flags:
   -max-file        Maximum file size (default: 2MB)
   -exclude-dirs    Skip directories (default: node_modules,.git,.idea,...)
   -include-hidden  Include hidden files/directories (default: false)
-`)
+`, version)
 }
 
 func PrintReconstructHelp() {
