@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"folder-bundler/internal/config"
-	"folder-bundler/internal/fileutils"
+	"github.com/jonathanleahy/folder-bundler/internal/config"
+	"github.com/jonathanleahy/folder-bundler/internal/fileutils"
 )
 
 type FileCollator struct {

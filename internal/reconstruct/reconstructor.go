@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"folder-bundler/internal/config"
+	"github.com/jonathanleahy/folder-bundler/internal/config"
 )
 
 type FileInfo struct {

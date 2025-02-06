@@ -2,11 +2,10 @@ package main
 
 import (
 	"fmt"
+	"github.com/jonathanleahy/folder-bundler/internal/collect"
+	"github.com/jonathanleahy/folder-bundler/internal/config"
+	"github.com/jonathanleahy/folder-bundler/internal/reconstruct"
 	"os"
-
-	"folder-bundler/internal/collect"
-	"folder-bundler/internal/config"
-	"folder-bundler/internal/reconstruct"
 )
 
 func main() {
