@@ -19,7 +19,6 @@ type Parameters struct {
 }
 
 const version = "1.0.0"
-ggi
 
 func PrintUsage() {
 	fmt.Printf(`Folder-Bundler - Version %s
