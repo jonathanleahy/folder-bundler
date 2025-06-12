@@ -70,16 +70,19 @@ func ProcessDirectory(params *config.Parameters) error {
 }
 
 func (fc *FileCollator) processPath(relPath string, info os.FileInfo) error {
+	// Normalize path to use forward slashes for cross-platform compatibility
+	normalizedPath := filepath.ToSlash(relPath)
+	
 	if info.IsDir() {
-		return fc.writeContent(fmt.Sprintf("## Directory: %s\n\n", relPath))
+		return fc.writeContent(fmt.Sprintf("## Directory: %s\n\n", normalizedPath))
 	}
 
 	if info.Size() > fc.params.MaxOutputSize {
-		return fc.writeContent(fmt.Sprintf("## File: %s (Skipped - Size exceeds 2MB)\n\n", relPath))
+		return fc.writeContent(fmt.Sprintf("## File: %s (Skipped - Size exceeds 2MB)\n\n", normalizedPath))
 	}
 
 	metadata := fmt.Sprintf("## File: %s\n\nSize: %d bytes\n\nLast Modified: %s\n\n",
-		relPath, info.Size(), info.ModTime().Format(time.RFC3339))
+		normalizedPath, info.Size(), info.ModTime().Format(time.RFC3339))
 
 	content, err := ioutil.ReadFile(filepath.Join(fc.params.RootDir, relPath))
 	if err != nil {
@@ -88,7 +91,12 @@ func (fc *FileCollator) processPath(relPath string, info os.FileInfo) error {
 
 	if fileutils.IsTextFile(content) {
 		language := fileutils.GetLanguage(filepath.Ext(relPath))
-		return fc.writeContent(fmt.Sprintf("%s```%s\n%s\n```\n\n", metadata, language, string(content)))
+		contentStr := string(content)
+		// Ensure content ends with exactly one newline before the closing backticks
+		if !strings.HasSuffix(contentStr, "\n") {
+			contentStr += "\n"
+		}
+		return fc.writeContent(fmt.Sprintf("%s```%s\n%s```\n\n", metadata, language, contentStr))
 	}
 
 	return fc.writeContent(fmt.Sprintf("%sBinary file - content not shown\n\n", metadata))

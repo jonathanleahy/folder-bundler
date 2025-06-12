@@ -92,6 +92,8 @@ func parseInputFile(filename string) (string, []FileInfo, error) {
 			if dirPath == "." {
 				dirPath = ""
 			}
+			// Convert forward slashes to OS-specific path separator
+			dirPath = filepath.FromSlash(dirPath)
 			files = append(files, FileInfo{
 				path:        dirPath,
 				isDirectory: true,
@@ -105,6 +107,8 @@ func parseInputFile(filename string) (string, []FileInfo, error) {
 			if idx := strings.Index(path, " (Skipped - Size:"); idx != -1 {
 				path = path[:idx]
 			}
+			// Convert forward slashes to OS-specific path separator
+			path = filepath.FromSlash(path)
 			currentFile = &FileInfo{
 				path:        path,
 				isDirectory: false,
