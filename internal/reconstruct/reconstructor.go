@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/jonathanleahy/folder-bundler/internal/compression"
 	"github.com/jonathanleahy/folder-bundler/internal/config"
 )
 
@@ -58,29 +59,96 @@ func FromFile(inputFile string, params *config.Parameters) error {
 }
 
 func parseInputFile(filename string) (string, []FileInfo, error) {
-	file, err := os.Open(filename)
-	if err != nil {
-		return "", nil, err
-	}
-	defer file.Close()
-
-	// Read entire file content for debugging
+	// Read entire file content first
 	content, err := os.ReadFile(filename)
 	if err != nil {
 		return "", nil, err
 	}
-	fmt.Printf("Full file content:\n%s\n", string(content))
 
+	// Check for compression headers and decompress if needed
+	decompressedContent, err := handleCompression(content)
+	if err != nil {
+		return "", nil, fmt.Errorf("error handling compression: %v", err)
+	}
+
+
+	// Parse the (decompressed) content
+	return parseContent(decompressedContent)
+}
+
+func handleCompression(content []byte) ([]byte, error) {
+	// Check if content starts with compression header
+	contentStr := string(content)
+	lines := strings.Split(contentStr, "\n")
+	
+	
+	if len(lines) < 1 || !strings.HasPrefix(lines[0], "# Compression: ") {
+		// Not compressed, return as-is
+		return content, nil
+	}
+
+	// Extract compression metadata
+	var compressionType string
+	var compressedStart int
+	currentLine := 0
+
+	// Parse compression headers
+	for currentLine < len(lines) {
+		line := lines[currentLine]
+		if strings.HasPrefix(line, "# Compression: ") {
+			compressionType = strings.TrimPrefix(line, "# Compression: ")
+		} else if strings.HasPrefix(line, "# Original Size: ") {
+			// Skip
+		} else if strings.HasPrefix(line, "# Compressed Size: ") {
+			// Skip
+		} else if strings.HasPrefix(line, "# Ratio: ") {
+			// Skip
+		} else if line == "" {
+			// Empty line after headers
+			compressedStart = currentLine + 1
+			break
+		} else {
+			// Non-header line, content starts here
+			compressedStart = currentLine
+			break
+		}
+		currentLine++
+	}
+
+	if compressionType == "" || compressedStart == 0 {
+		// No valid compression header found
+		return content, nil
+	}
+
+	// Get compressed content
+	compressedLines := lines[compressedStart:]
+	compressedContent := []byte(strings.Join(compressedLines, "\n"))
+
+	// Initialize compression if not already done
+	if err := compression.InitializeStrategies(); err != nil {
+		return nil, fmt.Errorf("failed to initialize compression strategies: %v", err)
+	}
+
+	// Create selector and decompress
+	selector := compression.NewSelector(compression.DefaultRegistry)
+	decompressed, err := selector.DecompressContent(compressedContent, compressionType)
+	if err != nil {
+		return nil, fmt.Errorf("decompression failed: %v", err)
+	}
+
+	return decompressed, nil
+}
+
+func parseContent(content []byte) (string, []FileInfo, error) {
 	var files []FileInfo
 	var currentFile *FileInfo
 	var rootDir string
 	isReadingCode := false
 	isFirstContentLine := true
 
-	scanner := bufio.NewScanner(file)
+	scanner := bufio.NewScanner(strings.NewReader(string(content)))
 	for scanner.Scan() {
 		line := scanner.Text()
-		fmt.Printf("Processing line: %s (isReadingCode=%v)\n", line, isReadingCode)
 
 		switch {
 		case strings.HasPrefix(line, "Root Directory: "):

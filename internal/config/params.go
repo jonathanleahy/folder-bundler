@@ -16,10 +16,13 @@ type Parameters struct {
 	SkipGitignore     bool
 	PreserveTimestamp bool
 	RootDir           string
+	// Compression settings
+	CompressionStrategy string
+	EnableCompression   bool
 }
 
 func PrintUsage() {
-	fmt.Printf(`Folder Bundler v1.5
+	fmt.Printf(`Folder Bundler v2.0
 
 Usage: bundler <command> [flags] [path]
 
@@ -31,11 +34,13 @@ Flags:
   -max-file        Maximum file size (default: 2MB)
   -exclude-dirs    Skip directories (default: node_modules,.git,.idea,...)
   -include-hidden  Include hidden files/directories (default: false)
+  -compress        Enable compression (default: false)
+  -compression     Compression strategy: none|auto|dictionary|template|delta|template+delta (default: auto)
 `)
 }
 
 func PrintReconstructHelp() {
-	fmt.Printf(`Folder Bundler v1.5
+	fmt.Printf(`Folder Bundler v2.0
 
 Usage: bundler reconstruct [flags] <input_file>
 
@@ -65,6 +70,8 @@ func ParseParameters() (*Parameters, error) {
 	flag.BoolVar(&params.IncludeHidden, "include-hidden", false, "Include hidden files")
 	flag.BoolVar(&params.SkipGitignore, "skip-gitignore", false, "Skip .gitignore processing")
 	flag.BoolVar(&params.PreserveTimestamp, "preserve-time", true, "Preserve original timestamps")
+	flag.BoolVar(&params.EnableCompression, "compress", false, "Enable compression")
+	flag.StringVar(&params.CompressionStrategy, "compression", "auto", "Compression strategy (none|auto|dictionary)")
 
 	flag.Parse()
 
