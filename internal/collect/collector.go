@@ -2,6 +2,7 @@ package collect
 
 import (
 	"crypto/sha256"
+	"encoding/base64"
 	"encoding/hex"
 	"fmt"
 	"io/ioutil"
@@ -155,7 +156,9 @@ func (fc *FileCollator) processPath(relPath string, info os.FileInfo) error {
 		return fc.writeContent(fmt.Sprintf("%s--- FILE CONTENT BEGIN ---\n%s\n@CONTENT-END@\n--- FILE CONTENT END ---\n\n", metadata, contentStr))
 	}
 
-	return fc.writeContent(fmt.Sprintf("%sBinary file - content not shown\n\n", metadata))
+	// Binary file - encode to base64
+	encoded := base64.StdEncoding.EncodeToString(content)
+	return fc.writeContent(fmt.Sprintf("%s--- FILE CONTENT BEGIN (BASE64) ---\n%s\n@CONTENT-END@\n--- FILE CONTENT END ---\n\n", metadata, encoded))
 }
 
 func (fc *FileCollator) writeContent(content string) error {

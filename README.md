@@ -1,4 +1,4 @@
-# folder-bundler v3.0
+# folder-bundler v3.1
 
 folder-bundler is a Go tool that helps you document and recreate project file structures. It creates detailed documentation of your project files and allows you to rebuild the structure elsewhere, with optional compression to reduce file sizes.
 
@@ -28,7 +28,11 @@ Recreate the structure elsewhere:
 
 ## Core Features
 
-The tool creates comprehensive project documentation including file contents, directory structures, and metadata. Output files use the `.fb` extension (folder bundle) to avoid editor encoding issues. It handles text and binary files appropriately, supports syntax highlighting for major programming languages, and manages large projects through automatic file splitting. SHA-256 hashes are calculated for all files to ensure accurate reconstruction.
+The tool creates comprehensive project documentation including file contents, directory structures, and metadata. Output files use the `.fb` extension (folder bundle) to avoid editor encoding issues. 
+
+**Binary File Support (v3.1)**: Binary files (.ico, .jpg, .mp3, .wav, etc.) are automatically encoded to base64 for storage and decoded during reconstruction, ensuring perfect reproduction of all file types.
+
+The tool supports syntax highlighting for major programming languages, manages large projects through automatic file splitting, and calculates SHA-256 hashes for all files to ensure accurate reconstruction.
 
 ### Compression Support
 
@@ -95,6 +99,13 @@ folder-bundler works well for:
 - Efficient code distribution
 
 ## Changelog
+
+### v3.1
+- **Binary File Support**: All binary files are now included in bundles
+  - Binary files (.ico, .jpg, .mp3, .wav, etc.) are automatically base64 encoded
+  - Perfect reconstruction of binary files with SHA-256 verification
+  - Seamless handling - no configuration needed
+  - Works with images, audio, video, executables, and any other binary format
 
 ### v3.0
 - **Major Performance Improvement**: Dictionary compression is now 10-100x faster for large files
