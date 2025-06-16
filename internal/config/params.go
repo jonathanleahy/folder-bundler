@@ -23,7 +23,7 @@ type Parameters struct {
 }
 
 func PrintUsage() {
-	fmt.Printf(`Folder Bundler v2.5
+	fmt.Printf(`Folder Bundler v2.6
 
 Usage: bundler <command> [flags] [path]
 
@@ -47,12 +47,12 @@ Examples:
   bundler collect -compress auto myproject
   bundler collect -compress dictionary -max 5M myproject
   bundler collect myproject -max 1G -out-max 10M
-  bundler reconstruct myproject_collated_part1.md
+  bundler reconstruct myproject_collated_part1.fb
 `)
 }
 
 func PrintReconstructHelp() {
-	fmt.Printf(`Folder Bundler v2.5
+	fmt.Printf(`Folder Bundler v2.6
 
 Usage: bundler reconstruct [flags] <input_file>
 
@@ -60,7 +60,7 @@ Flags:
   -time  Preserve timestamps (default: true)
 
 Example:
-  bundler reconstruct myproject_collated_part1.md
+  bundler reconstruct myproject_collated_part1.fb
 `)
 }
 

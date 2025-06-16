@@ -103,7 +103,7 @@ func ProcessDirectory(params *config.Parameters) error {
 		fmt.Printf("\nCollection complete:\n")
 		fmt.Printf("  Files processed: %d\n", collator.fileCount)
 		fmt.Printf("  Total size: %s\n", formatSize(collator.totalSize))
-		fmt.Printf("  Output: %s_part*.md\n", collator.baseFileName)
+		fmt.Printf("  Output: %s_part*.fb\n", collator.baseFileName)
 	}
 
 	return err
@@ -179,7 +179,7 @@ func (fc *FileCollator) writeContent(content string) error {
 func (fc *FileCollator) createNewFile() error {
 	fc.closeCurrentFile()
 
-	fileName := fmt.Sprintf("%s_part%d.md", fc.baseFileName, fc.currentPart)
+	fileName := fmt.Sprintf("%s_part%d.fb", fc.baseFileName, fc.currentPart)
 	file, err := os.Create(fileName)
 	if err != nil {
 		return err
@@ -223,7 +223,7 @@ func (fc *FileCollator) finalizeWithCompression() error {
 	
 	// Create output file without header for compressed content
 	fc.closeCurrentFile()
-	fileName := fmt.Sprintf("%s_part%d.md", fc.baseFileName, fc.currentPart)
+	fileName := fmt.Sprintf("%s_part%d.fb", fc.baseFileName, fc.currentPart)
 	file, err := os.Create(fileName)
 	if err != nil {
 		return err

@@ -216,9 +216,9 @@ func (d *DictionaryCompression) findPatterns(text string) []pattern {
 			
 			// Skip if contains our markers, delimiters, or newlines
 			if strings.Contains(substr, "--- BEGIN") || strings.Contains(substr, "--- END") ||
-			   strings.Contains(substr, "@REF") || strings.Contains(substr, "CONTENT-END") ||
-			   strings.Contains(substr, "FILE-CONTENT-BEGIN") ||
-			   strings.Contains(substr, "FILE-CONTENT-END") ||
+			   strings.Contains(substr, "@REF") || strings.Contains(substr, "@CONTENT-END@") ||
+			   strings.Contains(substr, "FILE CONTENT BEGIN") ||
+			   strings.Contains(substr, "FILE CONTENT END") ||
 			   strings.Contains(substr, "\n") {
 				continue
 			}
