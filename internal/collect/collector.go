@@ -102,9 +102,9 @@ func (fc *FileCollator) processPath(relPath string, info os.FileInfo) error {
 
 	if fileutils.IsTextFile(content) {
 		contentStr := string(content)
-		// Ensure content ends with exactly one newline before the closing delimiter
+		// Always ensure there's a newline before the end delimiter
 		if !strings.HasSuffix(contentStr, "\n") {
-			contentStr += "\n"
+			return fc.writeContent(fmt.Sprintf("%s===FILE_CONTENT_START===\n%s\n===FILE_CONTENT_END===\n\n", metadata, contentStr))
 		}
 		return fc.writeContent(fmt.Sprintf("%s===FILE_CONTENT_START===\n%s===FILE_CONTENT_END===\n\n", metadata, contentStr))
 	}

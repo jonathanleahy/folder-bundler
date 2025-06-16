@@ -75,6 +75,7 @@ func parseInputFile(filename string) (string, []FileInfo, error) {
 	var currentFile *FileInfo
 	var rootDir string
 	isReadingCode := false
+	isFirstContentLine := true
 
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
@@ -152,6 +153,7 @@ func parseInputFile(filename string) (string, []FileInfo, error) {
 		case line == "===FILE_CONTENT_START===":
 			if !isReadingCode {
 				isReadingCode = true
+				isFirstContentLine = true
 			}
 
 		case line == "===FILE_CONTENT_END===":
@@ -161,7 +163,11 @@ func parseInputFile(filename string) (string, []FileInfo, error) {
 
 		default:
 			if isReadingCode && currentFile != nil {
-				currentFile.content.WriteString(line + "\n")
+				if !isFirstContentLine {
+					currentFile.content.WriteString("\n")
+				}
+				currentFile.content.WriteString(line)
+				isFirstContentLine = false
 			}
 		}
 	}
@@ -234,12 +240,7 @@ func reconstructFile(f FileInfo, preserveTimestamp bool) error {
 	}
 	defer file.Close()
 
-	// Trim any trailing newline as it was added during parsing
 	content := f.content.String()
-	if len(content) > 0 && content[len(content)-1] == '\n' {
-		content = content[:len(content)-1]
-	}
-	
 	if _, err := file.WriteString(content); err != nil {
 		return fmt.Errorf("error writing content: %v", err)
 	}
