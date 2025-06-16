@@ -101,13 +101,12 @@ func (fc *FileCollator) processPath(relPath string, info os.FileInfo) error {
 	}
 
 	if fileutils.IsTextFile(content) {
-		language := fileutils.GetLanguage(filepath.Ext(relPath))
 		contentStr := string(content)
-		// Ensure content ends with exactly one newline before the closing backticks
+		// Ensure content ends with exactly one newline before the closing delimiter
 		if !strings.HasSuffix(contentStr, "\n") {
 			contentStr += "\n"
 		}
-		return fc.writeContent(fmt.Sprintf("%s```%s\n%s```\n\n", metadata, language, contentStr))
+		return fc.writeContent(fmt.Sprintf("%s===FILE_CONTENT_START===\n%s===FILE_CONTENT_END===\n\n", metadata, contentStr))
 	}
 
 	return fc.writeContent(fmt.Sprintf("%sBinary file - content not shown\n\n", metadata))

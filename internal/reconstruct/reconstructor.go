@@ -149,16 +149,19 @@ func parseInputFile(filename string) (string, []FileInfo, error) {
 				currentFile.symlinkTarget = strings.TrimPrefix(line, "Target: ")
 			}
 
-		case strings.HasPrefix(line, "```"):
-			if strings.TrimPrefix(strings.TrimSpace(line), "```") == "" {
-				isReadingCode = !isReadingCode
-			} else if !isReadingCode {
+		case line == "===FILE_CONTENT_START===":
+			if !isReadingCode {
 				isReadingCode = true
 			}
 
+		case line == "===FILE_CONTENT_END===":
+			if isReadingCode {
+				isReadingCode = false
+			}
+
 		default:
-			if isReadingCode && currentFile != nil && !strings.HasPrefix(line, "```") {
-				currentFile.content.WriteString(strings.TrimRight(line, "\r\n") + "\n")
+			if isReadingCode && currentFile != nil {
+				currentFile.content.WriteString(line + "\n")
 			}
 		}
 	}
@@ -231,7 +234,13 @@ func reconstructFile(f FileInfo, preserveTimestamp bool) error {
 	}
 	defer file.Close()
 
-	if _, err := file.WriteString(f.content.String()); err != nil {
+	// Trim any trailing newline as it was added during parsing
+	content := f.content.String()
+	if len(content) > 0 && content[len(content)-1] == '\n' {
+		content = content[:len(content)-1]
+	}
+	
+	if _, err := file.WriteString(content); err != nil {
 		return fmt.Errorf("error writing content: %v", err)
 	}
 
@@ -241,7 +250,7 @@ func reconstructFile(f FileInfo, preserveTimestamp bool) error {
 		}
 	}
 
-	fmt.Printf("Created file: %s with content length: %d\nContent:\n%s\n", f.path, len(f.content.String()), f.content.String())
+	fmt.Printf("Created file: %s with content length: %d\n", f.path, len(content))
 	return nil
 }
 
