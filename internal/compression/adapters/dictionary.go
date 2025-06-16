@@ -47,7 +47,7 @@ func (d *DictionaryCompression) Compress(content []byte) ([]byte, string, error)
 	entryNum := 1
 	
 	for _, p := range patterns {
-		ref := fmt.Sprintf("@REF%d@", entryNum)
+		ref := fmt.Sprintf("«%d»", entryNum)
 		dictEntry := fmt.Sprintf("%s=%s\n", ref, p.text)
 		
 		// Calculate if this pattern saves space
@@ -128,7 +128,7 @@ func (d *DictionaryCompression) EstimateRatio(content []byte) float64 {
 		if i >= 100 { // Limit dictionary size
 			break
 		}
-		ref := fmt.Sprintf("@REF%d@", i+1)
+		ref := fmt.Sprintf("«%d»", i+1)
 		dictEntry := len(ref) + 1 + len(p.text) + 1 // ref=pattern\n
 		
 		originalSize := len(p.text) * p.occurrences
@@ -216,7 +216,8 @@ func (d *DictionaryCompression) findPatterns(text string) []pattern {
 			
 			// Skip if contains our markers, delimiters, or newlines
 			if strings.Contains(substr, "--- BEGIN") || strings.Contains(substr, "--- END") ||
-			   strings.Contains(substr, "@REF") || strings.Contains(substr, "@CONTENT-END@") ||
+			   strings.Contains(substr, "«") || strings.Contains(substr, "»") || 
+			   strings.Contains(substr, "@CONTENT-END@") ||
 			   strings.Contains(substr, "FILE CONTENT BEGIN") ||
 			   strings.Contains(substr, "FILE CONTENT END") ||
 			   strings.Contains(substr, "\n") {
@@ -296,36 +297,15 @@ func (d *DictionaryCompression) removeOverlaps(patterns []pattern) []pattern {
 	return result
 }
 
-// escapeReferences escapes @ symbols that aren't part of dictionary references
+// escapeReferences - with «» delimiters, escaping is rarely needed
 func (d *DictionaryCompression) escapeReferences(text string, dictionary map[string]string) string {
-	// @ is less common in code, so this is rarely needed
-	result := text
-	
-	// Find all @ symbols that aren't part of references
-	for i := 0; i < len(result); i++ {
-		if result[i] == '@' {
-			// Check if this is a dictionary reference
-			isRef := false
-			for _, ref := range dictionary {
-				if strings.HasPrefix(result[i:], ref) {
-					isRef = true
-					i += len(ref) - 1
-					break
-				}
-			}
-			
-			if !isRef {
-				// Escape this @
-				result = result[:i] + "@" + result[i:]
-				i++ // Skip the inserted @
-			}
-		}
-	}
-	
-	return result
+	// «» are extremely rare in code, so we'll just return as-is
+	// If needed in future, we could escape « as «« 
+	return text
 }
 
-// unescapeReferences converts @@ back to @
+// unescapeReferences - with «» delimiters, unescaping is rarely needed
 func (d *DictionaryCompression) unescapeReferences(text string) string {
-	return strings.ReplaceAll(text, "@@", "@")
+	// If we implement escaping in future, we'd unescape «« back to «
+	return text
 }
