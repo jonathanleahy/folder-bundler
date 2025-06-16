@@ -1,4 +1,4 @@
-# folder-bundler v2.8
+# folder-bundler v2.9
 
 folder-bundler is a Go tool that helps you document and recreate project file structures. It creates detailed documentation of your project files and allows you to rebuild the structure elsewhere, with optional compression to reduce file sizes.
 
@@ -92,3 +92,10 @@ folder-bundler works well for:
 - Project structure analysis
 - Reducing storage size of code archives
 - Efficient code distribution
+
+## Changelog
+
+### v2.9
+- Fixed `-max` flag to properly enforce file size limits
+- Fixed UTF-8 handling in template compression to prevent panics
+- Improved error messages to show actual file sizes when skipping
