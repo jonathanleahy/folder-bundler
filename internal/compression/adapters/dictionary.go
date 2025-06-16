@@ -47,7 +47,7 @@ func (d *DictionaryCompression) Compress(content []byte) ([]byte, string, error)
 	entryNum := 1
 	
 	for _, p := range patterns {
-		ref := fmt.Sprintf("$%d", entryNum)
+		ref := fmt.Sprintf("$[%d]", entryNum)
 		dictEntry := fmt.Sprintf("%s=%s\n", ref, p.text)
 		
 		// Calculate if this pattern saves space
@@ -128,7 +128,7 @@ func (d *DictionaryCompression) EstimateRatio(content []byte) float64 {
 		if i >= 100 { // Limit dictionary size
 			break
 		}
-		ref := fmt.Sprintf("$%d", i+1)
+		ref := fmt.Sprintf("$[%d]", i+1)
 		dictEntry := len(ref) + 1 + len(p.text) + 1 // ref=pattern\n
 		
 		originalSize := len(p.text) * p.occurrences
@@ -215,7 +215,7 @@ func (d *DictionaryCompression) findPatterns(text string) []pattern {
 			substr := text[i : i+length]
 			
 			// Skip if contains our markers, delimiters, or newlines
-			if strings.Contains(substr, "===") || strings.Contains(substr, "$") ||
+			if strings.Contains(substr, "===") || strings.Contains(substr, "$[") ||
 			   strings.Contains(substr, "__CONTENT_END_MARKER__") ||
 			   strings.Contains(substr, "FILE_CONTENT_START") ||
 			   strings.Contains(substr, "FILE_CONTENT_END") ||
