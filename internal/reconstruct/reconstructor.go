@@ -17,6 +17,8 @@ type FileInfo struct {
 	size         int64
 	lastModified time.Time
 	isDirectory  bool
+	isSymlink    bool
+	symlinkTarget string
 }
 
 func FromFile(inputFile string, params *config.Parameters) error {
@@ -99,6 +101,21 @@ func parseInputFile(filename string) (string, []FileInfo, error) {
 				isDirectory: true,
 			})
 
+		case strings.HasPrefix(line, "## Symlink: "):
+			if currentFile != nil && !isReadingCode {
+				files = append(files, *currentFile)
+			}
+			path := strings.TrimPrefix(line, "## Symlink: ")
+			if idx := strings.Index(path, " (Error"); idx != -1 {
+				path = path[:idx]
+			}
+			// Convert forward slashes to OS-specific path separator
+			path = filepath.FromSlash(path)
+			currentFile = &FileInfo{
+				path:      path,
+				isSymlink: true,
+			}
+
 		case strings.HasPrefix(line, "## File: "):
 			if currentFile != nil && !isReadingCode {
 				files = append(files, *currentFile)
@@ -125,6 +142,11 @@ func parseInputFile(filename string) (string, []FileInfo, error) {
 			if currentFile != nil {
 				timeStr := strings.TrimPrefix(line, "Last Modified: ")
 				currentFile.lastModified, _ = time.Parse(time.RFC3339, timeStr)
+			}
+
+		case strings.HasPrefix(line, "Target: "):
+			if currentFile != nil && currentFile.isSymlink {
+				currentFile.symlinkTarget = strings.TrimPrefix(line, "Target: ")
 			}
 
 		case strings.HasPrefix(line, "```"):
@@ -177,11 +199,17 @@ func reconstructFiles(rootDir string, files []FileInfo, params *config.Parameter
 		}
 	}
 
-	// Then create all files
+	// Then create all files and symlinks
 	for _, f := range files {
 		if !f.isDirectory {
-			if err := reconstructFile(f, params.PreserveTimestamp); err != nil {
-				return fmt.Errorf("error reconstructing file %s: %v", f.path, err)
+			if f.isSymlink {
+				if err := reconstructSymlink(f); err != nil {
+					return fmt.Errorf("error reconstructing symlink %s: %v", f.path, err)
+				}
+			} else {
+				if err := reconstructFile(f, params.PreserveTimestamp); err != nil {
+					return fmt.Errorf("error reconstructing file %s: %v", f.path, err)
+				}
 			}
 		}
 	}
@@ -214,5 +242,28 @@ func reconstructFile(f FileInfo, preserveTimestamp bool) error {
 	}
 
 	fmt.Printf("Created file: %s with content length: %d\nContent:\n%s\n", f.path, len(f.content.String()), f.content.String())
+	return nil
+}
+
+func reconstructSymlink(f FileInfo) error {
+	dir := filepath.Dir(f.path)
+	if dir != "." {
+		if err := os.MkdirAll(dir, 0755); err != nil {
+			return fmt.Errorf("error creating parent directory: %v", err)
+		}
+	}
+
+	// Remove existing symlink if it exists
+	if _, err := os.Lstat(f.path); err == nil {
+		if err := os.Remove(f.path); err != nil {
+			return fmt.Errorf("error removing existing symlink: %v", err)
+		}
+	}
+
+	if err := os.Symlink(f.symlinkTarget, f.path); err != nil {
+		return fmt.Errorf("error creating symlink: %v", err)
+	}
+
+	fmt.Printf("Created symlink: %s -> %s\n", f.path, f.symlinkTarget)
 	return nil
 }

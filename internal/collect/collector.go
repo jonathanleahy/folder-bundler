@@ -73,6 +73,17 @@ func (fc *FileCollator) processPath(relPath string, info os.FileInfo) error {
 	// Normalize path to use forward slashes for cross-platform compatibility
 	normalizedPath := filepath.ToSlash(relPath)
 	
+	fullPath := filepath.Join(fc.params.RootDir, relPath)
+	
+	// Check if it's a symlink
+	if info.Mode()&os.ModeSymlink != 0 {
+		target, err := os.Readlink(fullPath)
+		if err != nil {
+			return fc.writeContent(fmt.Sprintf("## Symlink: %s (Error reading target: %v)\n\n", normalizedPath, err))
+		}
+		return fc.writeContent(fmt.Sprintf("## Symlink: %s\n\nTarget: %s\n\n", normalizedPath, target))
+	}
+	
 	if info.IsDir() {
 		return fc.writeContent(fmt.Sprintf("## Directory: %s\n\n", normalizedPath))
 	}
@@ -84,7 +95,7 @@ func (fc *FileCollator) processPath(relPath string, info os.FileInfo) error {
 	metadata := fmt.Sprintf("## File: %s\n\nSize: %d bytes\n\nLast Modified: %s\n\n",
 		normalizedPath, info.Size(), info.ModTime().Format(time.RFC3339))
 
-	content, err := ioutil.ReadFile(filepath.Join(fc.params.RootDir, relPath))
+	content, err := ioutil.ReadFile(fullPath)
 	if err != nil {
 		return err
 	}
