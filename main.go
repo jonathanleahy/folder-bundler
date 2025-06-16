@@ -31,7 +31,7 @@ func main() {
 				flags = append(flags, args[i])
 				// Check if this flag has a value
 				if i+1 < len(args) && !strings.HasPrefix(args[i+1], "-") {
-					if args[i] == "-compress" || args[i] == "-skip-dirs" || args[i] == "-skip-files" || args[i] == "-skip-ext" {
+					if args[i] == "-compress" || args[i] == "-skip-dirs" || args[i] == "-skip-files" || args[i] == "-skip-ext" || args[i] == "-max" || args[i] == "-out-max" {
 						i++
 						flags = append(flags, args[i])
 					}
