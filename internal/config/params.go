@@ -22,7 +22,7 @@ type Parameters struct {
 }
 
 func PrintUsage() {
-	fmt.Printf(`Folder Bundler v2.1
+	fmt.Printf(`Folder Bundler v2.2
 
 Usage: bundler <command> [flags] [path]
 
@@ -50,7 +50,7 @@ Examples:
 }
 
 func PrintReconstructHelp() {
-	fmt.Printf(`Folder Bundler v2.1
+	fmt.Printf(`Folder Bundler v2.2
 
 Usage: bundler reconstruct [flags] <input_file>
 
@@ -93,7 +93,16 @@ func ParseParameters() (*Parameters, error) {
 	params.RootDir = "."
 
 	// Parse flags and set compression
-	params.EnableCompression = params.CompressionStrategy != "none"
+	// Check if compress flag was explicitly set by looking at Visit
+	compressSet := false
+	flag.Visit(func(f *flag.Flag) {
+		if f.Name == "compress" {
+			compressSet = true
+		}
+	})
+	
+	// Enable compression if flag was set (even if value is "none")
+	params.EnableCompression = compressSet
 	
 	// Validate compression settings
 	validStrategies := map[string]bool{
