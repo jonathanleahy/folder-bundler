@@ -22,7 +22,7 @@ type Parameters struct {
 }
 
 func PrintUsage() {
-	fmt.Printf(`Folder Bundler v2.2
+	fmt.Printf(`Folder Bundler v2.3
 
 Usage: bundler <command> [flags] [path]
 
@@ -50,7 +50,7 @@ Examples:
 }
 
 func PrintReconstructHelp() {
-	fmt.Printf(`Folder Bundler v2.2
+	fmt.Printf(`Folder Bundler v2.3
 
 Usage: bundler reconstruct [flags] <input_file>
 
