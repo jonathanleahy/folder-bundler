@@ -156,9 +156,10 @@ func (fc *FileCollator) processPath(relPath string, info os.FileInfo) error {
 		return fc.writeContent(fmt.Sprintf("%s--- FILE CONTENT BEGIN ---\n%s\n@CONTENT-END@\n--- FILE CONTENT END ---\n\n", metadata, contentStr))
 	}
 
-	// Binary file - encode to base64
+	// Binary file - encode to base64 with line wrapping
 	encoded := base64.StdEncoding.EncodeToString(content)
-	return fc.writeContent(fmt.Sprintf("%s--- FILE CONTENT BEGIN (BASE64) ---\n%s\n@CONTENT-END@\n--- FILE CONTENT END ---\n\n", metadata, encoded))
+	wrapped := wrapBase64(encoded, 76)
+	return fc.writeContent(fmt.Sprintf("%s--- FILE CONTENT BEGIN (BASE64) ---\n%s\n@CONTENT-END@\n--- FILE CONTENT END ---\n\n", metadata, wrapped))
 }
 
 func (fc *FileCollator) writeContent(content string) error {
@@ -292,4 +293,24 @@ func formatSize(size int64) string {
 		exp++
 	}
 	return fmt.Sprintf("%.1f %cB", float64(size)/float64(div), "KMGTPE"[exp])
+}
+
+// wrapBase64 wraps base64 string to specified line length
+func wrapBase64(s string, lineLength int) string {
+	if len(s) <= lineLength {
+		return s
+	}
+	
+	var result strings.Builder
+	for i := 0; i < len(s); i += lineLength {
+		end := i + lineLength
+		if end > len(s) {
+			end = len(s)
+		}
+		if i > 0 {
+			result.WriteString("\n")
+		}
+		result.WriteString(s[i:end])
+	}
+	return result.String()
 }

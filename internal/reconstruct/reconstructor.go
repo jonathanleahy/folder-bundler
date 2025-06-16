@@ -396,8 +396,9 @@ func reconstructFileWithVerification(f FileInfo, preserveTimestamp bool) (bool, 
 	var fileContent []byte
 	
 	if f.isBase64 {
-		// Decode base64 content
-		decoded, err := base64.StdEncoding.DecodeString(content)
+		// Decode base64 content (remove newlines first)
+		cleanContent := strings.ReplaceAll(content, "\n", "")
+		decoded, err := base64.StdEncoding.DecodeString(cleanContent)
 		if err != nil {
 			return false, fmt.Errorf("error decoding base64 content: %v", err)
 		}
