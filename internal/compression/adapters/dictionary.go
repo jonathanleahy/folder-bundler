@@ -10,6 +10,8 @@ import (
 type DictionaryCompression struct {
 	minPatternLength int
 	minOccurrences   int
+	maxPatterns      int
+	skipStep         int
 }
 
 // NewDictionaryCompression creates a new dictionary compression strategy
@@ -17,6 +19,8 @@ func NewDictionaryCompression() *DictionaryCompression {
 	return &DictionaryCompression{
 		minPatternLength: 20,
 		minOccurrences:   3,
+		maxPatterns:      500,  // Limit patterns to evaluate
+		skipStep:         5,    // Skip positions for performance
 	}
 }
 
@@ -114,7 +118,20 @@ func (d *DictionaryCompression) CanCompress(content []byte) bool {
 
 // EstimateRatio estimates compression ratio
 func (d *DictionaryCompression) EstimateRatio(content []byte) float64 {
+	// Quick check: if content is too small, no benefit
+	if len(content) < 500 {
+		return 1.0
+	}
+	
+	// For estimation, sample the content if it's too large
 	text := string(content)
+	if len(text) > 100000 {
+		// Sample first and last portions
+		sampleSize := 50000
+		if len(text) > sampleSize*2 {
+			text = text[:sampleSize] + text[len(text)-sampleSize:]
+		}
+	}
 	patterns := d.findPatterns(text)
 	
 	if len(patterns) == 0 {
@@ -209,8 +226,14 @@ func (d *DictionaryCompression) findPatterns(text string) []pattern {
 	patternMap := make(map[string]*pattern)
 	textLen := len(text)
 	
+	// For very large texts, use sampling
+	step := 1
+	if textLen > 50000 {
+		step = d.skipStep
+	}
+	
 	// Find all substrings of minimum length
-	for i := 0; i < textLen-d.minPatternLength; i++ {
+	for i := 0; i < textLen-d.minPatternLength; i += step {
 		for length := d.minPatternLength; length <= 100 && i+length <= textLen; length++ {
 			substr := text[i : i+length]
 			
@@ -231,8 +254,14 @@ func (d *DictionaryCompression) findPatterns(text string) []pattern {
 			
 			if p, exists := patternMap[substr]; exists {
 				p.occurrences++
-				p.positions = append(p.positions, i)
+				if len(p.positions) < 100 { // Limit position tracking
+					p.positions = append(p.positions, i)
+				}
 			} else {
+				// Stop if we have too many patterns
+				if len(patternMap) >= d.maxPatterns*2 {
+					break
+				}
 				patternMap[substr] = &pattern{
 					text:        substr,
 					occurrences: 1,
@@ -256,6 +285,11 @@ func (d *DictionaryCompression) findPatterns(text string) []pattern {
 		savingsJ := (len(patterns[j].text) - 3) * patterns[j].occurrences
 		return savingsI > savingsJ
 	})
+	
+	// Limit to top patterns
+	if len(patterns) > d.maxPatterns {
+		patterns = patterns[:d.maxPatterns]
+	}
 	
 	// Remove overlapping patterns
 	return d.removeOverlaps(patterns)
