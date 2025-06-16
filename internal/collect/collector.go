@@ -261,7 +261,7 @@ func (fc *FileCollator) finalizeWithCompression() error {
 		if fc.params.CompressionStrategy == "none" {
 			fmt.Printf("  Compression: none\n")
 		} else {
-			fmt.Printf("  Compression: none (no benefit detected)\n")
+			fmt.Printf("  Compression: %s (not applied - no benefit)\n", fc.params.CompressionStrategy)
 		}
 		fmt.Printf("  Output size: %s\n", formatSize(int64(originalSize)))
 	}
