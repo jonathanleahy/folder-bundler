@@ -222,13 +222,13 @@ func parseContent(content []byte) (string, []FileInfo, error) {
 				currentFile.symlinkTarget = strings.TrimPrefix(line, "Target: ")
 			}
 
-		case line == "===FILE_CONTENT_START===":
+		case line == "--- FILE CONTENT BEGIN ---":
 			if !isReadingCode {
 				isReadingCode = true
 				isFirstContentLine = true
 			}
 
-		case line == "===FILE_CONTENT_END===":
+		case line == "--- FILE CONTENT END ---":
 			if isReadingCode {
 				isReadingCode = false
 			}
@@ -236,7 +236,7 @@ func parseContent(content []byte) (string, []FileInfo, error) {
 		default:
 			if isReadingCode && currentFile != nil {
 				// Skip our content end marker
-				if line == "__CONTENT_END_MARKER__" {
+				if line == "@CONTENT-END@" {
 					// Don't add this line to content
 				} else {
 					if !isFirstContentLine {

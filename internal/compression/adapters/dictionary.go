@@ -47,7 +47,7 @@ func (d *DictionaryCompression) Compress(content []byte) ([]byte, string, error)
 	entryNum := 1
 	
 	for _, p := range patterns {
-		ref := fmt.Sprintf("$[%d]", entryNum)
+		ref := fmt.Sprintf("@REF%d@", entryNum)
 		dictEntry := fmt.Sprintf("%s=%s\n", ref, p.text)
 		
 		// Calculate if this pattern saves space
@@ -68,7 +68,7 @@ func (d *DictionaryCompression) Compress(content []byte) ([]byte, string, error)
 	
 	// Build dictionary section
 	var dictBuilder strings.Builder
-	dictBuilder.WriteString("===DICTIONARY_START===\n")
+	dictBuilder.WriteString("--- BEGIN DICTIONARY ---\n")
 	
 	// Sort dictionary for consistent output
 	var sortedPatterns []string
@@ -83,7 +83,7 @@ func (d *DictionaryCompression) Compress(content []byte) ([]byte, string, error)
 		ref := dictionary[pattern]
 		dictBuilder.WriteString(fmt.Sprintf("%s=%s\n", ref, pattern))
 	}
-	dictBuilder.WriteString("===DICTIONARY_END===\n")
+	dictBuilder.WriteString("--- END DICTIONARY ---\n")
 	
 	// Replace patterns in content
 	compressed := text
@@ -122,13 +122,13 @@ func (d *DictionaryCompression) EstimateRatio(content []byte) float64 {
 	}
 	
 	totalSavings := 0
-	dictSize := len("===DICTIONARY_START===\n===DICTIONARY_END===\n")
+	dictSize := len("--- BEGIN DICTIONARY ---\n--- END DICTIONARY ---\n")
 	
 	for i, p := range patterns {
 		if i >= 100 { // Limit dictionary size
 			break
 		}
-		ref := fmt.Sprintf("$[%d]", i+1)
+		ref := fmt.Sprintf("@REF%d@", i+1)
 		dictEntry := len(ref) + 1 + len(p.text) + 1 // ref=pattern\n
 		
 		originalSize := len(p.text) * p.occurrences
@@ -153,18 +153,18 @@ func (d *DictionaryCompression) Decompress(compressed []byte, metadata string) (
 	text := string(compressed)
 	
 	// Extract dictionary
-	if !strings.HasPrefix(text, "===DICTIONARY_START===\n") {
+	if !strings.HasPrefix(text, "--- BEGIN DICTIONARY ---\n") {
 		return compressed, nil // No dictionary found
 	}
 	
-	dictEnd := strings.Index(text, "===DICTIONARY_END===\n")
+	dictEnd := strings.Index(text, "--- END DICTIONARY ---\n")
 	if dictEnd == -1 {
 		return nil, fmt.Errorf("dictionary end marker not found")
 	}
 	
-	dictStart := len("===DICTIONARY_START===\n")
+	dictStart := len("--- BEGIN DICTIONARY ---\n")
 	dictContent := text[dictStart:dictEnd]
-	content := text[dictEnd+len("===DICTIONARY_END===\n"):]
+	content := text[dictEnd+len("--- END DICTIONARY ---\n"):]
 	
 	// Parse dictionary
 	dictionary := make(map[string]string)
@@ -215,10 +215,10 @@ func (d *DictionaryCompression) findPatterns(text string) []pattern {
 			substr := text[i : i+length]
 			
 			// Skip if contains our markers, delimiters, or newlines
-			if strings.Contains(substr, "===") || strings.Contains(substr, "$[") ||
-			   strings.Contains(substr, "__CONTENT_END_MARKER__") ||
-			   strings.Contains(substr, "FILE_CONTENT_START") ||
-			   strings.Contains(substr, "FILE_CONTENT_END") ||
+			if strings.Contains(substr, "--- BEGIN") || strings.Contains(substr, "--- END") ||
+			   strings.Contains(substr, "@REF") || strings.Contains(substr, "CONTENT-END") ||
+			   strings.Contains(substr, "FILE-CONTENT-BEGIN") ||
+			   strings.Contains(substr, "FILE-CONTENT-END") ||
 			   strings.Contains(substr, "\n") {
 				continue
 			}
@@ -296,14 +296,14 @@ func (d *DictionaryCompression) removeOverlaps(patterns []pattern) []pattern {
 	return result
 }
 
-// escapeReferences escapes $ symbols that aren't part of dictionary references
+// escapeReferences escapes @ symbols that aren't part of dictionary references
 func (d *DictionaryCompression) escapeReferences(text string, dictionary map[string]string) string {
-	// This is a simplified version - in production, would need more sophisticated parsing
+	// @ is less common in code, so this is rarely needed
 	result := text
 	
-	// Find all $ symbols
+	// Find all @ symbols that aren't part of references
 	for i := 0; i < len(result); i++ {
-		if result[i] == '$' {
+		if result[i] == '@' {
 			// Check if this is a dictionary reference
 			isRef := false
 			for _, ref := range dictionary {
@@ -315,9 +315,9 @@ func (d *DictionaryCompression) escapeReferences(text string, dictionary map[str
 			}
 			
 			if !isRef {
-				// Escape this $
-				result = result[:i] + "$" + result[i:]
-				i++ // Skip the inserted $
+				// Escape this @
+				result = result[:i] + "@" + result[i:]
+				i++ // Skip the inserted @
 			}
 		}
 	}
@@ -325,7 +325,7 @@ func (d *DictionaryCompression) escapeReferences(text string, dictionary map[str
 	return result
 }
 
-// unescapeReferences converts $$ back to $
+// unescapeReferences converts @@ back to @
 func (d *DictionaryCompression) unescapeReferences(text string) string {
-	return strings.ReplaceAll(text, "$$", "$")
+	return strings.ReplaceAll(text, "@@", "@")
 }
