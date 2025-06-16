@@ -19,7 +19,9 @@ type Parameters struct {
 }
 
 func PrintUsage() {
-	fmt.Printf(`Usage: bundler <command> [flags] [path]
+	fmt.Printf(`Folder Bundler v1.0
+
+Usage: bundler <command> [flags] [path]
 
 Commands:
   collect     Create directory structure summary
@@ -33,7 +35,9 @@ Flags:
 }
 
 func PrintReconstructHelp() {
-	fmt.Printf(`Usage: bundler reconstruct [flags] <input_file>
+	fmt.Printf(`Folder Bundler v1.0
+
+Usage: bundler reconstruct [flags] <input_file>
 
 Flags:
   -preserve-time  Keep original timestamps (default: true)
