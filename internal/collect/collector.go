@@ -102,8 +102,8 @@ func (fc *FileCollator) processPath(relPath string, info os.FileInfo) error {
 
 	if fileutils.IsTextFile(content) {
 		contentStr := string(content)
-		// Write content exactly as-is, followed by our end marker
-		return fc.writeContent(fmt.Sprintf("%s===FILE_CONTENT_START===\n%s\n===FILE_CONTENT_END===\n\n", metadata, contentStr))
+		// Add a unique marker that won't conflict with actual content
+		return fc.writeContent(fmt.Sprintf("%s===FILE_CONTENT_START===\n%s\n__CONTENT_END_MARKER__\n===FILE_CONTENT_END===\n\n", metadata, contentStr))
 	}
 
 	return fc.writeContent(fmt.Sprintf("%sBinary file - content not shown\n\n", metadata))
