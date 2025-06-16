@@ -1,4 +1,4 @@
-# folder-bundler v3.1
+# folder-bundler v3.2
 
 folder-bundler is a Go tool that helps you document and recreate project file structures. It creates detailed documentation of your project files and allows you to rebuild the structure elsewhere, with optional compression to reduce file sizes.
 
@@ -30,7 +30,7 @@ Recreate the structure elsewhere:
 
 The tool creates comprehensive project documentation including file contents, directory structures, and metadata. Output files use the `.fb` extension (folder bundle) to avoid editor encoding issues. 
 
-**Binary File Support (v3.1)**: Binary files (.ico, .jpg, .mp3, .wav, etc.) are automatically encoded to base64 for storage and decoded during reconstruction, ensuring perfect reproduction of all file types.
+**Binary File Support (v3.1+)**: Binary files (.ico, .jpg, .mp3, .wav, etc.) are automatically encoded to base64 for storage and decoded during reconstruction, ensuring perfect reproduction of all file types. Large files are handled with proper line wrapping (v3.2).
 
 The tool supports syntax highlighting for major programming languages, manages large projects through automatic file splitting, and calculates SHA-256 hashes for all files to ensure accurate reconstruction.
 
@@ -99,6 +99,12 @@ folder-bundler works well for:
 - Efficient code distribution
 
 ## Changelog
+
+### v3.2
+- **Fixed Large Binary File Support**: Resolved "token too long" error for large files
+  - Base64 output now wrapped at 76 characters per line
+  - Handles binary files of any size without scanner limitations
+  - Maintains backward compatibility with v3.1 files
 
 ### v3.1
 - **Binary File Support**: All binary files are now included in bundles
