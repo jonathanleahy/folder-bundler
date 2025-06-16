@@ -214,8 +214,12 @@ func (d *DictionaryCompression) findPatterns(text string) []pattern {
 		for length := d.minPatternLength; length <= 100 && i+length <= textLen; length++ {
 			substr := text[i : i+length]
 			
-			// Skip if contains our markers
-			if strings.Contains(substr, "===") || strings.Contains(substr, "$") {
+			// Skip if contains our markers, delimiters, or newlines
+			if strings.Contains(substr, "===") || strings.Contains(substr, "$") ||
+			   strings.Contains(substr, "__CONTENT_END_MARKER__") ||
+			   strings.Contains(substr, "FILE_CONTENT_START") ||
+			   strings.Contains(substr, "FILE_CONTENT_END") ||
+			   strings.Contains(substr, "\n") {
 				continue
 			}
 			

@@ -22,7 +22,7 @@ type Parameters struct {
 }
 
 func PrintUsage() {
-	fmt.Printf(`Folder Bundler v2.0
+	fmt.Printf(`Folder Bundler v2.1
 
 Usage: bundler <command> [flags] [path]
 
@@ -31,21 +31,34 @@ Commands:
   reconstruct Build from summary file
 
 Flags:
-  -max-file        Maximum file size (default: 2MB)
-  -exclude-dirs    Skip directories (default: node_modules,.git,.idea,...)
-  -include-hidden  Include hidden files/directories (default: false)
-  -compress        Enable compression (default: false)
-  -compression     Compression strategy: none|auto|dictionary|template|delta|template+delta (default: auto)
+  -max          Maximum file size (default: 2MB)
+  -out-max      Maximum output file size (default: 2MB)
+  -skip-dirs    Skip directories (default: node_modules,.git,...)
+  -skip-files   Skip files (default: .DS_Store,.env,...)
+  -skip-ext     Skip extensions (default: .exe,.dll,...)
+  -hidden       Include hidden files (default: false)
+  -no-gitignore Skip .gitignore (default: false)
+  -time         Preserve timestamps (default: true)
+  -compress     Compression: none|auto|dictionary|template|delta|template+delta (default: none)
+
+Examples:
+  bundler collect myproject
+  bundler collect -compress auto myproject
+  bundler collect -compress dictionary -max 5242880 myproject
+  bundler reconstruct myproject_collated_part1.md
 `)
 }
 
 func PrintReconstructHelp() {
-	fmt.Printf(`Folder Bundler v2.0
+	fmt.Printf(`Folder Bundler v2.1
 
 Usage: bundler reconstruct [flags] <input_file>
 
 Flags:
-  -preserve-time  Keep original timestamps (default: true)
+  -time  Preserve timestamps (default: true)
+
+Example:
+  bundler reconstruct myproject_collated_part1.md
 `)
 }
 
@@ -62,16 +75,15 @@ func ParseParameters() (*Parameters, error) {
 	defaultExcludeFiles := "package-lock.json,yarn.lock,.DS_Store,.env"
 	defaultExcludeExts := ".exe,.dll,.so,.dylib,.bin,.pkl,.pyc,.bak"
 
-	flag.Int64Var(&params.MaxFileSize, "max-file", 2*1024*1024, "Maximum size of individual files")
-	flag.Int64Var(&params.MaxOutputSize, "max-output", 2*1024*1024, "Maximum size of output files")
-	flag.StringVar(&excludeDirs, "exclude-dirs", defaultExcludeDirs, "Directories to exclude")
-	flag.StringVar(&excludeFiles, "exclude-files", defaultExcludeFiles, "Files to exclude")
-	flag.StringVar(&excludeExts, "exclude-exts", defaultExcludeExts, "Extensions to exclude")
-	flag.BoolVar(&params.IncludeHidden, "include-hidden", false, "Include hidden files")
-	flag.BoolVar(&params.SkipGitignore, "skip-gitignore", false, "Skip .gitignore processing")
-	flag.BoolVar(&params.PreserveTimestamp, "preserve-time", true, "Preserve original timestamps")
-	flag.BoolVar(&params.EnableCompression, "compress", false, "Enable compression")
-	flag.StringVar(&params.CompressionStrategy, "compression", "auto", "Compression strategy (none|auto|dictionary)")
+	flag.Int64Var(&params.MaxFileSize, "max", 2*1024*1024, "Maximum file size")
+	flag.Int64Var(&params.MaxOutputSize, "out-max", 2*1024*1024, "Maximum output size")
+	flag.StringVar(&excludeDirs, "skip-dirs", defaultExcludeDirs, "Skip directories")
+	flag.StringVar(&excludeFiles, "skip-files", defaultExcludeFiles, "Skip files")
+	flag.StringVar(&excludeExts, "skip-ext", defaultExcludeExts, "Skip extensions")
+	flag.BoolVar(&params.IncludeHidden, "hidden", false, "Include hidden files")
+	flag.BoolVar(&params.SkipGitignore, "no-gitignore", false, "Skip .gitignore")
+	flag.BoolVar(&params.PreserveTimestamp, "time", true, "Preserve timestamps")
+	flag.StringVar(&params.CompressionStrategy, "compress", "none", "Compression (none|auto|dictionary|template|delta|template+delta)")
 
 	flag.Parse()
 
@@ -79,6 +91,23 @@ func ParseParameters() (*Parameters, error) {
 	params.ExcludedFiles = stringToMap(excludeFiles)
 	params.ExcludedExts = stringToMap(excludeExts)
 	params.RootDir = "."
+
+	// Parse flags and set compression
+	params.EnableCompression = params.CompressionStrategy != "none"
+	
+	// Validate compression settings
+	validStrategies := map[string]bool{
+		"none":           true,
+		"auto":           true,
+		"dictionary":     true,
+		"template":       true,
+		"delta":          true,
+		"template+delta": true,
+	}
+
+	if !validStrategies[params.CompressionStrategy] {
+		return nil, fmt.Errorf("invalid compression '%s'. Valid options: none, auto, dictionary, template, delta, template+delta", params.CompressionStrategy)
+	}
 
 	return &params, nil
 }

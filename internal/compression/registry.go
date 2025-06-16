@@ -66,14 +66,15 @@ func (r *Registry) SelectBest(content []byte) (CompressionStrategy, float64) {
 	var bestStrategy CompressionStrategy
 	bestRatio := 1.0
 	
-	// Always check "none" strategy first as baseline
-	if noneStrategy, exists := r.strategies["none"]; exists {
+	// Default to none strategy as baseline
+	noneStrategy, exists := r.strategies["none"]
+	if exists {
 		bestStrategy = noneStrategy
 	}
 	
 	// Try each strategy and find the best compression ratio
-	for _, strategy := range r.strategies {
-		if strategy.Name() == "none" {
+	for name, strategy := range r.strategies {
+		if name == "none" {
 			continue // Skip none strategy in comparison
 		}
 		

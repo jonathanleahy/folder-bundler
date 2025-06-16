@@ -1,4 +1,4 @@
-# folder-bundler v2.0
+# folder-bundler v2.1
 
 folder-bundler is a Go tool that helps you document and recreate project file structures. It creates detailed documentation of your project files and allows you to rebuild the structure elsewhere, with optional compression to reduce file sizes.
 
@@ -18,7 +18,7 @@ Document your project structure:
 
 Document with compression:
 ```bash
-./bundler collect -compress ./myproject
+./bundler collect -compress auto ./myproject
 ```
 
 Recreate the structure elsewhere:
@@ -30,7 +30,7 @@ Recreate the structure elsewhere:
 
 The tool creates comprehensive project documentation including file contents, directory structures, and metadata. It handles text and binary files appropriately, supports syntax highlighting for major programming languages, and manages large projects through automatic file splitting.
 
-### Compression Support (New in v2.0)
+### Compression Support
 
 folder-bundler now includes advanced compression strategies using hexagonal architecture:
 
@@ -45,32 +45,38 @@ When reconstructing projects, it accurately recreates the original structure whi
 
 Customize collection with these parameters:
 ```bash
-./bundler collect -max-file 5M -exclude-dirs "logs,temp" -compress -compression auto ./myproject
+./bundler collect -max 5242880 -skip-dirs "logs,temp" -compress auto ./myproject
 ```
 
 Common settings:
-- `-max-file`: Set maximum file size (default: 2MB)
-- `-exclude-dirs`: Skip specific directories
-- `-include-hidden`: Include hidden files
-- `-preserve-time`: Keep original timestamps during reconstruction
-- `-compress`: Enable compression (default: false)
-- `-compression`: Choose strategy: none|auto|dictionary|template|delta|template+delta (default: auto)
+- `-max`: Maximum file size (default: 2MB)
+- `-out-max`: Maximum output file size (default: 2MB)
+- `-skip-dirs`: Skip directories (default: node_modules,.git,...)
+- `-skip-files`: Skip files (default: .DS_Store,.env,...)
+- `-skip-ext`: Skip extensions (default: .exe,.dll,...)
+- `-hidden`: Include hidden files (default: false)
+- `-no-gitignore`: Skip .gitignore (default: false)
+- `-time`: Preserve timestamps (default: true)
+- `-compress`: Compression: none|auto|dictionary|template|delta|template+delta (default: none)
 
 The tool automatically excludes common directories like node_modules, dist, and build, as well as binary files (.exe, .dll, etc.) and lock files.
 
 ## Compression Examples
 
 ```bash
+# No compression (default)
+./bundler collect ./myproject
+
 # Auto-select best compression strategy
-./bundler collect -compress ./myproject
+./bundler collect -compress auto ./myproject
 
 # Use specific compression strategy
-./bundler collect -compress -compression dictionary ./docs
-./bundler collect -compress -compression template ./src
-./bundler collect -compress -compression delta ./configs
+./bundler collect -compress dictionary ./docs
+./bundler collect -compress template ./src
+./bundler collect -compress delta ./configs
 
 # Use combined compression for maximum reduction
-./bundler collect -compress -compression template+delta ./myproject
+./bundler collect -compress template+delta ./myproject
 ```
 
 ## Use Cases

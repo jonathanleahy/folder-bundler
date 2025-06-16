@@ -23,6 +23,9 @@ type FileCollator struct {
 	compressionEnabled bool
 	collectedContent   []byte
 	contentBuffer      strings.Builder
+	// Statistics
+	fileCount    int
+	totalSize    int64
 }
 
 func hasHiddenComponent(path string) bool {
@@ -36,6 +39,8 @@ func hasHiddenComponent(path string) bool {
 }
 
 func ProcessDirectory(params *config.Parameters) error {
+	fmt.Printf("Starting collection of: %s\n", params.RootDir)
+	
 	collator := &FileCollator{
 		currentPart:        1,
 		baseFileName:       fmt.Sprintf("%s_collated", filepath.Base(params.RootDir)),
@@ -43,6 +48,10 @@ func ProcessDirectory(params *config.Parameters) error {
 		compressionEnabled: params.EnableCompression,
 	}
 	defer collator.closeCurrentFile()
+	
+	if params.EnableCompression {
+		fmt.Printf("Compression enabled: strategy=%s\n", params.CompressionStrategy)
+	}
 
 	// If compression is enabled, collect all content first
 	if collator.compressionEnabled {
@@ -88,10 +97,16 @@ func ProcessDirectory(params *config.Parameters) error {
 
 	// If compression is enabled, compress and write the content
 	if collator.compressionEnabled {
-		return collator.finalizeWithCompression()
+		err = collator.finalizeWithCompression()
+	} else {
+		// Show summary for non-compressed collection
+		fmt.Printf("\nCollection complete:\n")
+		fmt.Printf("  Files processed: %d\n", collator.fileCount)
+		fmt.Printf("  Total size: %s\n", formatSize(collator.totalSize))
+		fmt.Printf("  Output: %s_part*.md\n", collator.baseFileName)
 	}
 
-	return nil
+	return err
 }
 
 func (fc *FileCollator) processPath(relPath string, info os.FileInfo) error {
@@ -124,6 +139,9 @@ func (fc *FileCollator) processPath(relPath string, info os.FileInfo) error {
 	if err != nil {
 		return err
 	}
+
+	fc.fileCount++
+	fc.totalSize += info.Size()
 
 	if fileutils.IsTextFile(content) {
 		contentStr := string(content)
@@ -227,13 +245,38 @@ func (fc *FileCollator) finalizeWithCompression() error {
 		return err
 	}
 	
-	// Log compression results
+	// Show detailed results
+	fmt.Printf("\nCollection complete:\n")
+	fmt.Printf("  Files processed: %d\n", fc.fileCount)
+	fmt.Printf("  Total size: %s\n", formatSize(fc.totalSize))
+	
 	if result.Strategy != "none" {
-		fmt.Printf("Compressed using %s strategy: %d -> %d bytes (%.1f%% reduction)\n",
-			result.Strategy, originalSize, len(result.Compressed), (1-result.Ratio)*100)
+		fmt.Printf("  Compression: %s\n", result.Strategy)
+		fmt.Printf("  Original output size: %s\n", formatSize(int64(originalSize)))
+		fmt.Printf("  Compressed size: %s\n", formatSize(int64(len(result.Compressed))))
+		fmt.Printf("  Space saved: %s (%.1f%% reduction)\n", 
+			formatSize(int64(originalSize - len(result.Compressed))), 
+			(1-result.Ratio)*100)
 	} else {
-		fmt.Printf("No compression applied (would not reduce size)\n")
+		fmt.Printf("  Compression: none (no benefit detected)\n")
+		fmt.Printf("  Output size: %s\n", formatSize(int64(originalSize)))
 	}
 	
+	fmt.Printf("  Output file: %s\n", fileName)
+	
 	return nil
+}
+
+// formatSize formats bytes into human readable format
+func formatSize(size int64) string {
+	const unit = 1024
+	if size < unit {
+		return fmt.Sprintf("%d B", size)
+	}
+	div, exp := int64(unit), 0
+	for n := size / unit; n >= unit; n /= unit {
+		div *= unit
+		exp++
+	}
+	return fmt.Sprintf("%.1f %cB", float64(size)/float64(div), "KMGTPE"[exp])
 }
