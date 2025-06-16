@@ -2,6 +2,8 @@ package reconstruct
 
 import (
 	"bufio"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -16,6 +18,7 @@ type FileInfo struct {
 	path         string
 	content      strings.Builder
 	size         int64
+	sha256Hash   string
 	lastModified time.Time
 	isDirectory  bool
 	isSymlink    bool
@@ -211,6 +214,11 @@ func parseContent(content []byte) (string, []FileInfo, error) {
 				fmt.Sscanf(size, "%d", &currentFile.size)
 			}
 
+		case strings.HasPrefix(line, "SHA-256: "):
+			if currentFile != nil {
+				currentFile.sha256Hash = strings.TrimPrefix(line, "SHA-256: ")
+			}
+
 		case strings.HasPrefix(line, "Last Modified: "):
 			if currentFile != nil {
 				timeStr := strings.TrimPrefix(line, "Last Modified: ")
@@ -281,6 +289,8 @@ func reconstructFiles(rootDir string, files []FileInfo, params *config.Parameter
 	fileCount := 0
 	symlinkCount := 0
 	totalSize := int64(0)
+	verifiedCount := 0
+	failedVerifications := []string{}
 
 	// First create all directories
 	for _, f := range files {
@@ -301,11 +311,19 @@ func reconstructFiles(rootDir string, files []FileInfo, params *config.Parameter
 				}
 				symlinkCount++
 			} else {
-				if err := reconstructFile(f, params.PreserveTimestamp); err != nil {
+				verified, err := reconstructFileWithVerification(f, params.PreserveTimestamp)
+				if err != nil {
 					return fmt.Errorf("error reconstructing file %s: %v", f.path, err)
 				}
 				fileCount++
 				totalSize += int64(len(f.content.String()))
+				if f.sha256Hash != "" {
+					if verified {
+						verifiedCount++
+					} else {
+						failedVerifications = append(failedVerifications, f.path)
+					}
+				}
 			}
 		}
 	}
@@ -317,6 +335,17 @@ func reconstructFiles(rootDir string, files []FileInfo, params *config.Parameter
 		fmt.Printf("  Symlinks created: %d\n", symlinkCount)
 	}
 	fmt.Printf("  Total size: %s\n", formatSize(totalSize))
+	
+	if verifiedCount > 0 || len(failedVerifications) > 0 {
+		fmt.Printf("\nHash verification:\n")
+		fmt.Printf("  Files verified: %d\n", verifiedCount)
+		if len(failedVerifications) > 0 {
+			fmt.Printf("  Failed verifications: %d\n", len(failedVerifications))
+			for _, path := range failedVerifications {
+				fmt.Printf("    - %s\n", path)
+			}
+		}
+	}
 
 	return nil
 }
@@ -335,32 +364,39 @@ func formatSize(size int64) string {
 	return fmt.Sprintf("%.1f %cB", float64(size)/float64(div), "KMGTPE"[exp])
 }
 
-func reconstructFile(f FileInfo, preserveTimestamp bool) error {
+func reconstructFileWithVerification(f FileInfo, preserveTimestamp bool) (bool, error) {
 	dir := filepath.Dir(f.path)
 	if dir != "." {
 		if err := os.MkdirAll(dir, 0755); err != nil {
-			return fmt.Errorf("error creating parent directory: %v", err)
+			return false, fmt.Errorf("error creating parent directory: %v", err)
 		}
 	}
 
 	file, err := os.Create(f.path)
 	if err != nil {
-		return fmt.Errorf("error creating file: %v", err)
+		return false, fmt.Errorf("error creating file: %v", err)
 	}
 	defer file.Close()
 
 	content := f.content.String()
 	if _, err := file.WriteString(content); err != nil {
-		return fmt.Errorf("error writing content: %v", err)
+		return false, fmt.Errorf("error writing content: %v", err)
 	}
 
 	if preserveTimestamp && !f.lastModified.IsZero() {
 		if err := os.Chtimes(f.path, f.lastModified, f.lastModified); err != nil {
-			return fmt.Errorf("error setting file time: %v", err)
+			return false, fmt.Errorf("error setting file time: %v", err)
 		}
 	}
 
-	return nil
+	// Verify hash if available
+	if f.sha256Hash != "" {
+		hash := sha256.Sum256([]byte(content))
+		calculatedHash := hex.EncodeToString(hash[:])
+		return calculatedHash == f.sha256Hash, nil
+	}
+
+	return true, nil
 }
 
 func reconstructSymlink(f FileInfo) error {

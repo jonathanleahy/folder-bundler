@@ -1,6 +1,8 @@
 package collect
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -128,17 +130,21 @@ func (fc *FileCollator) processPath(relPath string, info os.FileInfo) error {
 		return fc.writeContent(fmt.Sprintf("## Directory: %s\n\n", normalizedPath))
 	}
 
-	if info.Size() > fc.params.MaxOutputSize {
-		return fc.writeContent(fmt.Sprintf("## File: %s (Skipped - Size exceeds 2MB)\n\n", normalizedPath))
+	if info.Size() > fc.params.MaxFileSize {
+		return fc.writeContent(fmt.Sprintf("## File: %s (Skipped - Size %d exceeds max %d)\n\n", normalizedPath, info.Size(), fc.params.MaxFileSize))
 	}
-
-	metadata := fmt.Sprintf("## File: %s\n\nSize: %d bytes\n\nLast Modified: %s\n\n",
-		normalizedPath, info.Size(), info.ModTime().Format(time.RFC3339))
 
 	content, err := ioutil.ReadFile(fullPath)
 	if err != nil {
 		return err
 	}
+
+	// Calculate SHA-256 hash
+	hash := sha256.Sum256(content)
+	hashStr := hex.EncodeToString(hash[:])
+
+	metadata := fmt.Sprintf("## File: %s\n\nSize: %d bytes\n\nSHA-256: %s\n\nLast Modified: %s\n\n",
+		normalizedPath, info.Size(), hashStr, info.ModTime().Format(time.RFC3339))
 
 	fc.fileCount++
 	fc.totalSize += info.Size()

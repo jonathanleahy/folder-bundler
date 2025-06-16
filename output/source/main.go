@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"os"
 
-	"folder-bundler/internal/collect"
-	"folder-bundler/internal/config"
-	"folder-bundler/internal/reconstruct"
+	"github.com/jonathanleahy/folder-bundler/internal/collect"
+	"github.com/jonathanleahy/folder-bundler/internal/config"
+	"github.com/jonathanleahy/folder-bundler/internal/reconstruct"
 )
 
 func main() {
