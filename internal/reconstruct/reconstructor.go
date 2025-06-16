@@ -3,6 +3,7 @@ package reconstruct
 import (
 	"bufio"
 	"crypto/sha256"
+	"encoding/base64"
 	"encoding/hex"
 	"fmt"
 	"os"
@@ -23,6 +24,7 @@ type FileInfo struct {
 	isDirectory  bool
 	isSymlink    bool
 	symlinkTarget string
+	isBase64     bool
 }
 
 func FromFile(inputFile string, params *config.Parameters) error {
@@ -234,6 +236,18 @@ func parseContent(content []byte) (string, []FileInfo, error) {
 			if !isReadingCode {
 				isReadingCode = true
 				isFirstContentLine = true
+				if currentFile != nil {
+					currentFile.isBase64 = false
+				}
+			}
+
+		case line == "--- FILE CONTENT BEGIN (BASE64) ---":
+			if !isReadingCode {
+				isReadingCode = true
+				isFirstContentLine = true
+				if currentFile != nil {
+					currentFile.isBase64 = true
+				}
 			}
 
 		case line == "--- FILE CONTENT END ---":
@@ -379,7 +393,20 @@ func reconstructFileWithVerification(f FileInfo, preserveTimestamp bool) (bool, 
 	defer file.Close()
 
 	content := f.content.String()
-	if _, err := file.WriteString(content); err != nil {
+	var fileContent []byte
+	
+	if f.isBase64 {
+		// Decode base64 content
+		decoded, err := base64.StdEncoding.DecodeString(content)
+		if err != nil {
+			return false, fmt.Errorf("error decoding base64 content: %v", err)
+		}
+		fileContent = decoded
+	} else {
+		fileContent = []byte(content)
+	}
+	
+	if _, err := file.Write(fileContent); err != nil {
 		return false, fmt.Errorf("error writing content: %v", err)
 	}
 
@@ -391,7 +418,7 @@ func reconstructFileWithVerification(f FileInfo, preserveTimestamp bool) (bool, 
 
 	// Verify hash if available
 	if f.sha256Hash != "" {
-		hash := sha256.Sum256([]byte(content))
+		hash := sha256.Sum256(fileContent)
 		calculatedHash := hex.EncodeToString(hash[:])
 		return calculatedHash == f.sha256Hash, nil
 	}
