@@ -1,4 +1,4 @@
-# folder-bundler v2.5
+# folder-bundler v2.6
 
 folder-bundler is a Go tool that helps you document and recreate project file structures. It creates detailed documentation of your project files and allows you to rebuild the structure elsewhere, with optional compression to reduce file sizes.
 
@@ -23,12 +23,12 @@ Document with compression:
 
 Recreate the structure elsewhere:
 ```bash
-./bundler reconstruct project_collated.md
+./bundler reconstruct project_collated_part1.fb
 ```
 
 ## Core Features
 
-The tool creates comprehensive project documentation including file contents, directory structures, and metadata. It handles text and binary files appropriately, supports syntax highlighting for major programming languages, and manages large projects through automatic file splitting.
+The tool creates comprehensive project documentation including file contents, directory structures, and metadata. Output files use the `.fb` extension (folder bundle) to avoid editor encoding issues. It handles text and binary files appropriately, supports syntax highlighting for major programming languages, and manages large projects through automatic file splitting.
 
 ### Compression Support
 

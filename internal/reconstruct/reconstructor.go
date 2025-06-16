@@ -25,9 +25,9 @@ type FileInfo struct {
 func FromFile(inputFile string, params *config.Parameters) error {
 	fmt.Printf("Starting reconstruction from: %s\n", inputFile)
 	
-	basePath := strings.TrimSuffix(inputFile, "_part1.md")
-	basePath = strings.TrimSuffix(basePath, ".md")
-	pattern := basePath + "*.md"
+	basePath := strings.TrimSuffix(inputFile, "_part1.fb")
+	basePath = strings.TrimSuffix(basePath, ".fb")
+	pattern := basePath + "*.fb"
 
 	matches, err := filepath.Glob(pattern)
 	if err != nil {
