@@ -28,20 +28,38 @@ func (s *Selector) CompressContentWithStrategy(content []byte, strategyName stri
 	
 	if strategyName == "auto" {
 		// Try auto-selection
-		strategy, _ = s.registry.SelectBest(content)
-		if strategy == nil {
+		selectedStrategy, bestRatio := s.registry.SelectBest(content)
+		if selectedStrategy != nil {
+			strategy = selectedStrategy
+			if strategy.Name() != "none" {
+				fmt.Printf("  Auto-selected: %s (estimated %.1f%% reduction)\n", strategy.Name(), (1-bestRatio)*100)
+			} else {
+				fmt.Printf("  Auto-selected: none (no compression benefit detected)\n")
+			}
+		} else {
 			// Fallback to none
 			strategy, err = s.registry.Get("none")
 			if err != nil {
-				return nil, fmt.Errorf("no compression strategies available")
+				return nil, fmt.Errorf("no compression strategies available: %w", err)
 			}
+			fmt.Printf("  Auto-selected: none (no compression benefit detected)\n")
 		}
 	} else {
 		// Use specific strategy
 		strategy, err = s.registry.Get(strategyName)
 		if err != nil {
-			return nil, fmt.Errorf("strategy %s not available: %w", strategyName, err)
+			// List available strategies
+			available := s.registry.List()
+			return nil, fmt.Errorf("strategy '%s' not available. Available strategies: %v", strategyName, available)
 		}
+		fmt.Printf("  Using strategy: %s\n", strategy.Name())
+	}
+	
+	// Ensure we have a strategy
+	if strategy == nil {
+		// Debug: list what's available
+		available := s.registry.List()
+		return nil, fmt.Errorf("no compression strategy selected (available: %v, requested: %s)", available, strategyName)
 	}
 	
 	// Compress with selected strategy

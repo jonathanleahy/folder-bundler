@@ -22,7 +22,7 @@ type Parameters struct {
 }
 
 func PrintUsage() {
-	fmt.Printf(`Folder Bundler v2.0
+	fmt.Printf(`Folder Bundler v2.1
 
 Usage: bundler <command> [flags] [path]
 
@@ -40,7 +40,7 @@ Flags:
 }
 
 func PrintReconstructHelp() {
-	fmt.Printf(`Folder Bundler v2.0
+	fmt.Printf(`Folder Bundler v2.1
 
 Usage: bundler reconstruct [flags] <input_file>
 
@@ -71,7 +71,7 @@ func ParseParameters() (*Parameters, error) {
 	flag.BoolVar(&params.SkipGitignore, "skip-gitignore", false, "Skip .gitignore processing")
 	flag.BoolVar(&params.PreserveTimestamp, "preserve-time", true, "Preserve original timestamps")
 	flag.BoolVar(&params.EnableCompression, "compress", false, "Enable compression")
-	flag.StringVar(&params.CompressionStrategy, "compression", "auto", "Compression strategy (none|auto|dictionary)")
+	flag.StringVar(&params.CompressionStrategy, "compression", "auto", "Compression strategy (none|auto|dictionary|template|delta|template+delta)")
 
 	flag.Parse()
 

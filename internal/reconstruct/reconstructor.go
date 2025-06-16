@@ -23,6 +23,8 @@ type FileInfo struct {
 }
 
 func FromFile(inputFile string, params *config.Parameters) error {
+	fmt.Printf("Starting reconstruction from: %s\n", inputFile)
+	
 	basePath := strings.TrimSuffix(inputFile, "_part1.md")
 	basePath = strings.TrimSuffix(basePath, ".md")
 	pattern := basePath + "*.md"
@@ -36,11 +38,13 @@ func FromFile(inputFile string, params *config.Parameters) error {
 		return fmt.Errorf("no collated files found matching pattern: %s", pattern)
 	}
 
+	fmt.Printf("Found %d file(s) to process\n", len(matches))
+
 	var allFiles []FileInfo
 	var rootDir string
 
 	for _, match := range matches {
-		fmt.Printf("Processing file: %s\n", match)
+		fmt.Printf("  Processing: %s\n", match)
 		currentRootDir, files, err := parseInputFile(match)
 		if err != nil {
 			return fmt.Errorf("error parsing input file %s: %v", match, err)
@@ -49,7 +53,7 @@ func FromFile(inputFile string, params *config.Parameters) error {
 		if rootDir == "" {
 			rootDir = currentRootDir
 		} else if rootDir != currentRootDir {
-			fmt.Printf("Warning: Inconsistent root directories found. Using %s\n", rootDir)
+			fmt.Printf("  Warning: Inconsistent root directories found. Using %s\n", rootDir)
 		}
 
 		allFiles = append(allFiles, files...)
@@ -261,8 +265,10 @@ func parseContent(content []byte) (string, []FileInfo, error) {
 }
 
 func reconstructFiles(rootDir string, files []FileInfo, params *config.Parameters) error {
-	fmt.Printf("Reconstructing files in root dir: %s\n", rootDir)
-	fmt.Printf("Total files to process: %d\n", len(files))
+	fmt.Printf("\nReconstructing project structure:\n")
+	fmt.Printf("  Root directory: %s\n", rootDir)
+	fmt.Printf("  Total items: %d\n", len(files))
+	
 	if err := os.MkdirAll(rootDir, 0755); err != nil {
 		return fmt.Errorf("error creating root directory: %v", err)
 	}
@@ -271,13 +277,18 @@ func reconstructFiles(rootDir string, files []FileInfo, params *config.Parameter
 		return fmt.Errorf("error changing to root directory: %v", err)
 	}
 
+	dirCount := 0
+	fileCount := 0
+	symlinkCount := 0
+	totalSize := int64(0)
+
 	// First create all directories
 	for _, f := range files {
 		if f.isDirectory && f.path != "" {
 			if err := os.MkdirAll(f.path, 0755); err != nil {
 				return fmt.Errorf("error creating directory %s: %v", f.path, err)
 			}
-			fmt.Printf("Created directory: %s\n", f.path)
+			dirCount++
 		}
 	}
 
@@ -288,15 +299,40 @@ func reconstructFiles(rootDir string, files []FileInfo, params *config.Parameter
 				if err := reconstructSymlink(f); err != nil {
 					return fmt.Errorf("error reconstructing symlink %s: %v", f.path, err)
 				}
+				symlinkCount++
 			} else {
 				if err := reconstructFile(f, params.PreserveTimestamp); err != nil {
 					return fmt.Errorf("error reconstructing file %s: %v", f.path, err)
 				}
+				fileCount++
+				totalSize += int64(len(f.content.String()))
 			}
 		}
 	}
 
+	fmt.Printf("\nReconstruction complete:\n")
+	fmt.Printf("  Directories created: %d\n", dirCount)
+	fmt.Printf("  Files created: %d\n", fileCount)
+	if symlinkCount > 0 {
+		fmt.Printf("  Symlinks created: %d\n", symlinkCount)
+	}
+	fmt.Printf("  Total size: %s\n", formatSize(totalSize))
+
 	return nil
+}
+
+// formatSize formats bytes into human readable format
+func formatSize(size int64) string {
+	const unit = 1024
+	if size < unit {
+		return fmt.Sprintf("%d B", size)
+	}
+	div, exp := int64(unit), 0
+	for n := size / unit; n >= unit; n /= unit {
+		div *= unit
+		exp++
+	}
+	return fmt.Sprintf("%.1f %cB", float64(size)/float64(div), "KMGTPE"[exp])
 }
 
 func reconstructFile(f FileInfo, preserveTimestamp bool) error {
@@ -324,7 +360,6 @@ func reconstructFile(f FileInfo, preserveTimestamp bool) error {
 		}
 	}
 
-	fmt.Printf("Created file: %s with content length: %d\n", f.path, len(content))
 	return nil
 }
 
@@ -347,6 +382,5 @@ func reconstructSymlink(f FileInfo) error {
 		return fmt.Errorf("error creating symlink: %v", err)
 	}
 
-	fmt.Printf("Created symlink: %s -> %s\n", f.path, f.symlinkTarget)
 	return nil
 }
