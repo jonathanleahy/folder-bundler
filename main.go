@@ -3,10 +3,12 @@ package main
 import (
 	"flag"
 	"fmt"
+	"os"
+	"strings"
+	
 	"github.com/jonathanleahy/folder-bundler/internal/collect"
 	"github.com/jonathanleahy/folder-bundler/internal/config"
 	"github.com/jonathanleahy/folder-bundler/internal/reconstruct"
-	"os"
 )
 
 func main() {
@@ -20,18 +22,41 @@ func main() {
 	// Parse command-specific flags
 	switch command {
 	case "collect":
-		// Shift os.Args to exclude the command
-		os.Args = os.Args[1:]
+		// Extract path and reorder arguments
+		args := os.Args[2:]
+		var path string
+		var flags []string
+		
+		for i := 0; i < len(args); i++ {
+			if strings.HasPrefix(args[i], "-") {
+				flags = append(flags, args[i])
+				// Check if this flag has a value
+				if i+1 < len(args) && !strings.HasPrefix(args[i+1], "-") {
+					if args[i] == "-compress" || args[i] == "-skip-dirs" || args[i] == "-skip-files" || args[i] == "-skip-ext" {
+						i++
+						flags = append(flags, args[i])
+					}
+				}
+			} else if path == "" {
+				path = args[i]
+			}
+		}
+		
+		// Reconstruct os.Args with flags first, then path
+		os.Args = append([]string{os.Args[0]}, flags...)
+		if path != "" {
+			os.Args = append(os.Args, path)
+		}
+		
 		params, err := config.ParseParameters()
 		if err != nil {
 			fmt.Printf("Error parsing parameters: %v\n", err)
 			os.Exit(1)
 		}
 		
-		// Get remaining arguments after flag parsing
-		args := flag.Args()
-		if len(args) > 0 {
-			params.RootDir = args[0]
+		// Set the root directory
+		if path != "" {
+			params.RootDir = path
 		}
 		
 		if err := collect.ProcessDirectory(params); err != nil {
@@ -40,21 +65,43 @@ func main() {
 		}
 		
 	case "reconstruct":
-		// Shift os.Args to exclude the command
-		os.Args = os.Args[1:]
+		// Extract path and reorder arguments
+		args := os.Args[2:]
+		var path string
+		var flags []string
+		
+		for i := 0; i < len(args); i++ {
+			if strings.HasPrefix(args[i], "-") {
+				flags = append(flags, args[i])
+				// Check if this flag has a value
+				if i+1 < len(args) && !strings.HasPrefix(args[i+1], "-") {
+					if args[i] == "-time" {
+						// -time is a boolean flag, don't consume next arg
+					}
+				}
+			} else if path == "" {
+				path = args[i]
+			}
+		}
+		
+		// Reconstruct os.Args with flags first, then path
+		os.Args = append([]string{os.Args[0]}, flags...)
+		if path != "" {
+			os.Args = append(os.Args, path)
+		}
+		
 		params, err := config.ParseParameters()
 		if err != nil {
 			fmt.Printf("Error parsing parameters: %v\n", err)
 			os.Exit(1)
 		}
 		
-		args := flag.Args()
-		if len(args) < 1 {
+		if path == "" {
 			config.PrintReconstructHelp()
 			os.Exit(1)
 		}
 		
-		if err := reconstruct.FromFile(args[0], params); err != nil {
+		if err := reconstruct.FromFile(path, params); err != nil {
 			fmt.Printf("Error during reconstruction: %v\n", err)
 			os.Exit(1)
 		}
