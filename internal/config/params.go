@@ -80,6 +80,25 @@ func ParseParameters() (*Parameters, error) {
 	params.ExcludedExts = stringToMap(excludeExts)
 	params.RootDir = "."
 
+	// Validate compression settings
+	validStrategies := map[string]bool{
+		"none":           true,
+		"auto":           true,
+		"dictionary":     true,
+		"template":       true,
+		"delta":          true,
+		"template+delta": true,
+	}
+
+	if params.EnableCompression && !validStrategies[params.CompressionStrategy] {
+		return nil, fmt.Errorf("invalid compression strategy '%s'. Valid strategies are: none, auto, dictionary, template, delta, template+delta", params.CompressionStrategy)
+	}
+
+	// Warn if compression strategy is set without enabling compression
+	if !params.EnableCompression && params.CompressionStrategy != "auto" {
+		fmt.Printf("Warning: compression strategy '%s' specified but compression is not enabled. Use -compress flag to enable compression.\n", params.CompressionStrategy)
+	}
+
 	return &params, nil
 }
 

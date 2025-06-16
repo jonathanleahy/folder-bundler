@@ -1,1 +1,0 @@
-This is repeated text that should compress well. This is repeated text that should compress well.
