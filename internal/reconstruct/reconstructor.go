@@ -241,6 +241,10 @@ func reconstructFile(f FileInfo, preserveTimestamp bool) error {
 	defer file.Close()
 
 	content := f.content.String()
+	// Remove the extra newline we added before ===FILE_CONTENT_END===
+	if len(content) > 0 && content[len(content)-1] == '\n' {
+		content = content[:len(content)-1]
+	}
 	if _, err := file.WriteString(content); err != nil {
 		return fmt.Errorf("error writing content: %v", err)
 	}

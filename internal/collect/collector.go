@@ -102,11 +102,8 @@ func (fc *FileCollator) processPath(relPath string, info os.FileInfo) error {
 
 	if fileutils.IsTextFile(content) {
 		contentStr := string(content)
-		// Always ensure there's a newline before the end delimiter
-		if !strings.HasSuffix(contentStr, "\n") {
-			return fc.writeContent(fmt.Sprintf("%s===FILE_CONTENT_START===\n%s\n===FILE_CONTENT_END===\n\n", metadata, contentStr))
-		}
-		return fc.writeContent(fmt.Sprintf("%s===FILE_CONTENT_START===\n%s===FILE_CONTENT_END===\n\n", metadata, contentStr))
+		// Write content exactly as-is, followed by our end marker
+		return fc.writeContent(fmt.Sprintf("%s===FILE_CONTENT_START===\n%s\n===FILE_CONTENT_END===\n\n", metadata, contentStr))
 	}
 
 	return fc.writeContent(fmt.Sprintf("%sBinary file - content not shown\n\n", metadata))
