@@ -1,4 +1,4 @@
-# folder-bundler v2.3
+# folder-bundler v2.4
 
 folder-bundler is a Go tool that helps you document and recreate project file structures. It creates detailed documentation of your project files and allows you to rebuild the structure elsewhere, with optional compression to reduce file sizes.
 
@@ -45,12 +45,12 @@ When reconstructing projects, it accurately recreates the original structure whi
 
 Customize collection with these parameters:
 ```bash
-./bundler collect -max 5242880 -skip-dirs "logs,temp" -compress auto ./myproject
+./bundler collect -max 5M -skip-dirs "logs,temp" -compress auto ./myproject
 ```
 
 Common settings:
-- `-max`: Maximum file size (default: 2MB)
-- `-out-max`: Maximum output file size (default: 2MB)
+- `-max`: Maximum file size (default: 2M, accepts: 500K, 1M, 2G)
+- `-out-max`: Maximum output file size (default: 2M)
 - `-skip-dirs`: Skip directories (default: node_modules,.git,...)
 - `-skip-files`: Skip files (default: .DS_Store,.env,...)
 - `-skip-ext`: Skip extensions (default: .exe,.dll,...)
@@ -80,7 +80,7 @@ The tool automatically excludes common directories like node_modules, dist, and 
 
 # Flags can be placed anywhere
 ./bundler collect ./myproject -compress auto
-./bundler collect -compress dictionary ./docs -max 5242880
+./bundler collect -compress dictionary ./docs -max 5M
 ```
 
 ## Use Cases
