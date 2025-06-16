@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/jonathanleahy/folder-bundler/internal/compression"
 	"github.com/jonathanleahy/folder-bundler/internal/config"
 	"github.com/jonathanleahy/folder-bundler/internal/fileutils"
 )
@@ -18,6 +19,10 @@ type FileCollator struct {
 	currentFile  *os.File
 	baseFileName string
 	params       *config.Parameters
+	// Compression support
+	compressionEnabled bool
+	collectedContent   []byte
+	contentBuffer      strings.Builder
 }
 
 func hasHiddenComponent(path string) bool {
@@ -32,17 +37,26 @@ func hasHiddenComponent(path string) bool {
 
 func ProcessDirectory(params *config.Parameters) error {
 	collator := &FileCollator{
-		currentPart:  1,
-		baseFileName: fmt.Sprintf("%s_collated", filepath.Base(params.RootDir)),
-		params:       params,
+		currentPart:        1,
+		baseFileName:       fmt.Sprintf("%s_collated", filepath.Base(params.RootDir)),
+		params:             params,
+		compressionEnabled: params.EnableCompression,
 	}
 	defer collator.closeCurrentFile()
 
-	if err := collator.createNewFile(); err != nil {
-		return err
+	// If compression is enabled, collect all content first
+	if collator.compressionEnabled {
+		// Write to buffer instead of file initially
+		collator.contentBuffer.WriteString(fmt.Sprintf("# Project Files Summary - Part %d\n\nGenerated on: %s\n\nRoot Directory: %s\n\n---\n\n",
+			collator.currentPart, time.Now().Format(time.RFC3339), params.RootDir))
+	} else {
+		if err := collator.createNewFile(); err != nil {
+			return err
+		}
 	}
 
-	return filepath.Walk(params.RootDir, func(path string, info os.FileInfo, err error) error {
+	// Walk directory and collect/write files
+	err := filepath.Walk(params.RootDir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
@@ -67,6 +81,17 @@ func ProcessDirectory(params *config.Parameters) error {
 
 		return collator.processPath(relPath, info)
 	})
+
+	if err != nil {
+		return err
+	}
+
+	// If compression is enabled, compress and write the content
+	if collator.compressionEnabled {
+		return collator.finalizeWithCompression()
+	}
+
+	return nil
 }
 
 func (fc *FileCollator) processPath(relPath string, info os.FileInfo) error {
@@ -110,6 +135,12 @@ func (fc *FileCollator) processPath(relPath string, info os.FileInfo) error {
 }
 
 func (fc *FileCollator) writeContent(content string) error {
+	// If compression is enabled, buffer content instead of writing
+	if fc.compressionEnabled {
+		fc.contentBuffer.WriteString(content)
+		return nil
+	}
+
 	contentSize := int64(len(content))
 	if fc.currentSize+contentSize > fc.params.MaxOutputSize {
 		fc.currentPart++
@@ -151,4 +182,58 @@ func (fc *FileCollator) closeCurrentFile() {
 		fc.currentFile.Close()
 		fc.currentFile = nil
 	}
+}
+
+func (fc *FileCollator) finalizeWithCompression() error {
+	// Get the buffered content
+	content := fc.contentBuffer.String()
+	originalSize := len(content)
+	
+	// Initialize compression strategies
+	if err := compression.InitializeStrategies(); err != nil {
+		return fmt.Errorf("failed to initialize compression strategies: %w", err)
+	}
+	
+	// Create compression selector
+	selector := compression.NewSelector(compression.DefaultRegistry)
+	
+	// Compress content using specified strategy
+	result, err := selector.CompressContentWithStrategy([]byte(content), fc.params.CompressionStrategy)
+	if err != nil {
+		return fmt.Errorf("compression failed: %w", err)
+	}
+	
+	// Create output file without header for compressed content
+	fc.closeCurrentFile()
+	fileName := fmt.Sprintf("%s_part%d.md", fc.baseFileName, fc.currentPart)
+	file, err := os.Create(fileName)
+	if err != nil {
+		return err
+	}
+	fc.currentFile = file
+	fc.currentSize = 0
+	
+	// Write compression metadata if compressed
+	if result.Strategy != "none" {
+		header := fmt.Sprintf("# Compression: %s\n# Original Size: %d bytes\n# Compressed Size: %d bytes\n# Ratio: %.2f%%\n\n",
+			result.Metadata, originalSize, len(result.Compressed), result.Ratio*100)
+		if _, err := fc.currentFile.WriteString(header); err != nil {
+			return err
+		}
+	}
+	
+	// Write the content (compressed or original)
+	if _, err := fc.currentFile.Write(result.Compressed); err != nil {
+		return err
+	}
+	
+	// Log compression results
+	if result.Strategy != "none" {
+		fmt.Printf("Compressed using %s strategy: %d -> %d bytes (%.1f%% reduction)\n",
+			result.Strategy, originalSize, len(result.Compressed), (1-result.Ratio)*100)
+	} else {
+		fmt.Printf("No compression applied (would not reduce size)\n")
+	}
+	
+	return nil
 }

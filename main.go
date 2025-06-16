@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"github.com/jonathanleahy/folder-bundler/internal/collect"
 	"github.com/jonathanleahy/folder-bundler/internal/config"
@@ -23,21 +24,24 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Get remaining arguments after flag parsing
+	args := flag.Args()
+
 	switch command {
 	case "collect":
-		if len(os.Args) > 1 {
-			params.RootDir = os.Args[1]
+		if len(args) > 0 {
+			params.RootDir = args[0]
 		}
 		if err := collect.ProcessDirectory(params); err != nil {
 			fmt.Printf("Error during collection: %v\n", err)
 			os.Exit(1)
 		}
 	case "reconstruct":
-		if len(os.Args) < 2 {
+		if len(args) < 1 {
 			config.PrintReconstructHelp()
 			os.Exit(1)
 		}
-		if err := reconstruct.FromFile(os.Args[1], params); err != nil {
+		if err := reconstruct.FromFile(args[0], params); err != nil {
 			fmt.Printf("Error during reconstruction: %v\n", err)
 			os.Exit(1)
 		}
