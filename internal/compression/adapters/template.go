@@ -5,6 +5,7 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+	"unicode/utf8"
 )
 
 // TemplateCompression implements template-based compression
@@ -490,13 +491,22 @@ func (t *TemplateCompression) generateParamName(val1, val2 string) string {
 func (t *TemplateCompression) extractInstance(line, pattern string, params []string) map[string]string {
 	instance := make(map[string]string)
 	
+	// Ensure both line and pattern are valid UTF-8
+	if !utf8.ValidString(line) || !utf8.ValidString(pattern) {
+		return nil
+	}
+	
 	// Build regex from pattern
 	regexPattern := regexp.QuoteMeta(pattern)
 	for _, param := range params {
 		regexPattern = strings.Replace(regexPattern, "\\{"+param+"\\}", "(.+?)", 1)
 	}
 	
-	re := regexp.MustCompile("^" + regexPattern + "$")
+	re, err := regexp.Compile("^" + regexPattern + "$")
+	if err != nil {
+		// Invalid regex pattern, skip this instance
+		return nil
+	}
 	matches := re.FindStringSubmatch(line)
 	
 	if matches == nil || len(matches) != len(params)+1 {
