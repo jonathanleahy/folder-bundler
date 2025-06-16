@@ -258,11 +258,20 @@ func (t *TemplateCompression) Decompress(compressed []byte, metadata string) ([]
 	lines := strings.Split(content, "\n")
 	expandedLines := []string{}
 	
+	// Compile regex once for performance and safety
+	templateInstanceRe := regexp.MustCompile(`^(T\d+)\{([^}]+)\}$`)
+	
 	for i := 0; i < len(lines); i++ {
 		line := lines[i]
 		
+		// Skip lines with invalid UTF-8
+		if !utf8.ValidString(line) {
+			expandedLines = append(expandedLines, line)
+			continue
+		}
+		
 		// Check if this is a template instance
-		if match := regexp.MustCompile(`^(T\d+)\{([^}]+)\}$`).FindStringSubmatch(line); match != nil {
+		if match := templateInstanceRe.FindStringSubmatch(line); match != nil {
 			ref := match[1]
 			paramsStr := match[2]
 			
@@ -323,7 +332,9 @@ func (t *TemplateCompression) findTemplates(lines []string) []template {
 		
 		// Find lines with similar structure
 		normalized := t.normalizeForGrouping(line)
-		groups[normalized] = append(groups[normalized], i)
+		if normalized != "" {
+			groups[normalized] = append(groups[normalized], i)
+		}
 	}
 	
 	// Process groups to find templates
@@ -351,6 +362,11 @@ func (t *TemplateCompression) findTemplates(lines []string) []template {
 
 // normalizeForGrouping creates a normalized version for grouping similar lines
 func (t *TemplateCompression) normalizeForGrouping(line string) string {
+	// Skip lines with invalid UTF-8
+	if !utf8.ValidString(line) {
+		return ""
+	}
+	
 	// Replace common variable parts with placeholders
 	normalized := line
 	
@@ -502,6 +518,11 @@ func (t *TemplateCompression) extractInstance(line, pattern string, params []str
 		regexPattern = strings.Replace(regexPattern, "\\{"+param+"\\}", "(.+?)", 1)
 	}
 	
+	// Ensure the regex pattern is valid UTF-8 after replacements
+	if !utf8.ValidString(regexPattern) {
+		return nil
+	}
+	
 	re, err := regexp.Compile("^" + regexPattern + "$")
 	if err != nil {
 		// Invalid regex pattern, skip this instance
@@ -532,6 +553,12 @@ func (t *TemplateCompression) expandTemplate(pattern string, params map[string]s
 // extractParamNames extracts parameter names from a template pattern
 func (t *TemplateCompression) extractParamNames(pattern string) []string {
 	var params []string
+	
+	// Check for valid UTF-8
+	if !utf8.ValidString(pattern) {
+		return params
+	}
+	
 	re := regexp.MustCompile(`\{([^}]+)\}`)
 	matches := re.FindAllStringSubmatch(pattern, -1)
 	
