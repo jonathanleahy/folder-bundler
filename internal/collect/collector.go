@@ -130,8 +130,8 @@ func (fc *FileCollator) processPath(relPath string, info os.FileInfo) error {
 		return fc.writeContent(fmt.Sprintf("## Directory: %s\n\n", normalizedPath))
 	}
 
-	if info.Size() > fc.params.MaxOutputSize {
-		return fc.writeContent(fmt.Sprintf("## File: %s (Skipped - Size exceeds 2MB)\n\n", normalizedPath))
+	if info.Size() > fc.params.MaxFileSize {
+		return fc.writeContent(fmt.Sprintf("## File: %s (Skipped - Size %d exceeds max %d)\n\n", normalizedPath, info.Size(), fc.params.MaxFileSize))
 	}
 
 	content, err := ioutil.ReadFile(fullPath)
