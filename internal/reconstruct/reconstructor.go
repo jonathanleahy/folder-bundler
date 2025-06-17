@@ -320,10 +320,20 @@ func reconstructFiles(rootDir string, files []FileInfo, params *config.Parameter
 	for _, f := range files {
 		if !f.isDirectory {
 			if f.isSymlink {
-				if err := reconstructSymlink(f); err != nil {
-					return fmt.Errorf("error reconstructing symlink %s: %v", f.path, err)
+				if params.SkipSymlinks {
+					fmt.Printf("  Skipping symlink: %s -> %s\n", f.path, f.symlinkTarget)
+				} else {
+					if err := reconstructSymlink(f); err != nil {
+						// Check if it's a permission error on Windows
+						if strings.Contains(err.Error(), "A required privilege is not held") || 
+						   strings.Contains(err.Error(), "client") ||
+						   strings.Contains(err.Error(), "privilege") {
+							return fmt.Errorf("error creating symlink %s: %v\n\nTip: Creating symbolic links on Windows requires administrator privileges.\nYou can either:\n  1. Run this command as Administrator\n  2. Enable Developer Mode in Windows Settings\n  3. Use the -skip-symlinks flag to skip symbolic links", f.path, err)
+						}
+						return fmt.Errorf("error reconstructing symlink %s: %v", f.path, err)
+					}
+					symlinkCount++
 				}
-				symlinkCount++
 			} else {
 				verified, err := reconstructFileWithVerification(f, params.PreserveTimestamp)
 				if err != nil {
