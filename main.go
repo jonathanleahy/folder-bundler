@@ -10,6 +10,8 @@ import (
 	"github.com/jonathanleahy/folder-bundler/internal/reconstruct"
 )
 
+const Version = "3.3"
+
 func main() {
 	if len(os.Args) < 2 {
 		config.PrintUsage()

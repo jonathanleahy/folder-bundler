@@ -16,6 +16,7 @@ type Parameters struct {
 	IncludeHidden     bool
 	SkipGitignore     bool
 	PreserveTimestamp bool
+	SkipSymlinks      bool
 	RootDir           string
 	// Compression settings
 	CompressionStrategy string
@@ -23,7 +24,7 @@ type Parameters struct {
 }
 
 func PrintUsage() {
-	fmt.Printf(`Folder Bundler v3.2
+	fmt.Printf(`Folder Bundler v3.3
 
 Usage: bundler <command> [flags] [path]
 
@@ -52,15 +53,17 @@ Examples:
 }
 
 func PrintReconstructHelp() {
-	fmt.Printf(`Folder Bundler v3.2
+	fmt.Printf(`Folder Bundler v3.3
 
 Usage: bundler reconstruct [flags] <input_file>
 
 Flags:
-  -time  Preserve timestamps (default: true)
+  -time          Preserve timestamps (default: true)
+  -skip-symlinks Skip creating symbolic links (default: false)
 
 Example:
   bundler reconstruct myproject_collated_part1.fb
+  bundler reconstruct -skip-symlinks myproject_collated_part1.fb
 `)
 }
 
@@ -86,6 +89,7 @@ func ParseParameters() (*Parameters, error) {
 	flag.BoolVar(&params.IncludeHidden, "hidden", false, "Include hidden files")
 	flag.BoolVar(&params.SkipGitignore, "no-gitignore", false, "Skip .gitignore")
 	flag.BoolVar(&params.PreserveTimestamp, "time", true, "Preserve timestamps")
+	flag.BoolVar(&params.SkipSymlinks, "skip-symlinks", false, "Skip creating symbolic links")
 	flag.StringVar(&params.CompressionStrategy, "compress", "none", "Compression (none|auto|dictionary|template|delta|template+delta)")
 
 	flag.Parse()

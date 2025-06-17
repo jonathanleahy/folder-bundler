@@ -1,4 +1,4 @@
-# folder-bundler v3.2
+# folder-bundler v3.3
 
 folder-bundler is a Go tool that helps you document and recreate project file structures. It creates detailed documentation of your project files and allows you to rebuild the structure elsewhere, with optional compression to reduce file sizes.
 
@@ -24,6 +24,9 @@ Document with compression:
 Recreate the structure elsewhere:
 ```bash
 ./bundler reconstruct project_collated_part1.fb
+
+# Skip symbolic links (useful on Windows without admin privileges)
+./bundler reconstruct -skip-symlinks project_collated_part1.fb
 ```
 
 ## Core Features
@@ -63,6 +66,7 @@ Common settings:
 - `-no-gitignore`: Skip .gitignore (default: false)
 - `-time`: Preserve timestamps (default: true)
 - `-compress`: Compression: none|auto|dictionary|template|delta|template+delta (default: none)
+- `-skip-symlinks`: Skip creating symbolic links during reconstruction (default: false)
 
 The tool automatically excludes common directories like node_modules, dist, and build, as well as binary files (.exe, .dll, etc.) and lock files.
 
@@ -99,6 +103,12 @@ folder-bundler works well for:
 - Efficient code distribution
 
 ## Changelog
+
+### v3.3
+- **Added `-skip-symlinks` Flag**: Skip symbolic link creation during reconstruction
+  - Useful on Windows when running without administrator privileges
+  - Provides helpful error message when symlink creation fails due to permissions
+  - Maintains full compatibility with existing `.fb` files
 
 ### v3.2
 - **Fixed Large Binary File Support**: Resolved "token too long" error for large files
